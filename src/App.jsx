@@ -104,7 +104,7 @@ export default function App() {
   
   // Single, unified return logic
   return session ? (
-    <Dashboard /> 
+    <Dashboard session={session}/> 
   ) : (
     <div style={{ textAlign: 'center', marginTop: '100px' }}>
       <h1>Vault Access</h1>

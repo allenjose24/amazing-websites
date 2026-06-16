@@ -32,7 +32,7 @@ export default function Dashboard({ session }) {
       </header>
 
       {isAdminMode ? (
-        <AdminPanel userEmail={session.user.email} />
+        <AdminPanel userEmail={session?.user?.email} />
       ) : (
         loading ? <p>Loading vault...</p> : (
           <div style={{ 
