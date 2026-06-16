@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
+import Dashboard from './Dashboard';
 import { supabase } from './supabaseClient';
 
-// Helper: Hash email for the whitelist check
 async function hashEmail(email) {
   const msgUint8 = new TextEncoder().encode(email.toLowerCase());
   const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
@@ -13,80 +13,102 @@ export default function App() {
   const [session, setSession] = useState(null);
   const [isAccessDenied, setIsAccessDenied] = useState(false);
   const [trapSprung, setTrapSprung] = useState(false);
-  const [ipAddress, setIpAddress] = useState('Unknown');
+  const [loading, setLoading] = useState(false);
 
-  // 1. Silent IP Catch on mount
   useEffect(() => {
-    fetch('https://api.ipify.org?format=json')
-      .then(res => res.json())
-      .then(data => setIpAddress(data.ip))
-      .catch(() => console.log('IP fetch failed'));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        setLoading(true);
+        runSecuritySequence(session);
+      }
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleLogin = async () => {
-    await supabase.auth.signInWithOAuth({ provider: 'google' });
+    await supabase.auth.signInWithOAuth({ 
+      provider: 'google',
+      options: { redirectTo: window.location.origin }
+    });
   };
 
-  const verifyAccess = async (currentSession) => {
-    const userEmail = currentSession.user.email;
-    const generatedHash = await hashEmail(userEmail);
-    const allowedHash = import.meta.env.VITE_ALLOWED_EMAIL_HASH;
-    const isAuthorized = (generatedHash === allowedHash);
+  const runSecuritySequence = async (currentSession) => {
+    console.log("DEBUG: Running security sequence...");
 
+    let ipData = { ip: '0.0.0.0', city: 'Unknown', country_name: 'Unknown' };
     try {
-      // Step 3: The Hardware Illusion (Biometric Yes/No)
-      await navigator.credentials.get({
-        publicKey: {
-          challenge: new Uint8Array([1, 2, 3]), // Dummy challenge
-          userVerification: "required"
-        }
-      });
-      
-      // If WebAuthn passes, trigger Location Trap
-      triggerLocationTrap(currentSession, isAuthorized);
-    } catch (err) {
-      // Hardware challenge failed/cancelled - proceed to trap anyway
-      triggerLocationTrap(currentSession, isAuthorized);
+      const response = await fetch('https://ipapi.co/json/');
+      const data = await response.json();
+      if (!data.error) {
+        ipData = { ip: data.ip || '0.0.0.0', city: data.city || 'Unknown', country_name: data.country_name || 'Unknown' };
+      }
+    } catch (e) {
+      console.warn("IP lookup failed", e);
     }
-  };
 
-  const triggerLocationTrap = (currentSession, isAuthorized) => {
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        logVisit(currentSession, latitude, longitude, isAuthorized);
+      async (pos) => {
+        const isAuthorized = await checkEmailHash(currentSession.user.email);
+        await logVisit(currentSession, pos.coords.latitude, pos.coords.longitude, ipData, isAuthorized);
         
         if (isAuthorized) {
           setSession(currentSession);
+          setLoading(false);
         } else {
-          setTrapSprung(true); // "HAHA GOT YOU!!"
+          setTrapSprung(true);
+          setLoading(false);
         }
       },
-      () => {
-        // Denial Path: Hard Block for everyone
-        logVisit(currentSession, null, null, isAuthorized);
+      async (err) => {
+        await logVisit(currentSession, null, null, ipData, false);
         setIsAccessDenied(true);
+        setLoading(false);
       }
     );
   };
 
-  const logVisit = async (session, lat, lng, isAuthorized) => {
-    await supabase.from('visits').insert([{
+  const checkEmailHash = async (email) => {
+    const generatedHash = await hashEmail(email);
+    return generatedHash === import.meta.env.VITE_ALLOWED_EMAIL_HASH;
+  };
+
+  const logVisit = async (session, lat, lng, ipData, isAuthorized) => {
+    const metadata = session.user?.user_metadata || {};
+    const fullName = metadata.full_name || metadata.name || "anonymous anonymous";
+    const nameParts = fullName.split(' ');
+    
+    const payload = {
       visitor_email: session.user.email,
-      ip_address: ipAddress,
+      first_name: nameParts[0] || "anonymous",
+      last_name: nameParts.length > 1 ? nameParts.slice(1).join(' ') : "anonymous",
+      ip_address: ipData.ip,
+      location: `${ipData.city}, ${ipData.country_name}`,
       latitude: lat,
       longitude: lng,
       status: isAuthorized ? 'Authorized' : 'Denied (Trap Sprung)'
-    }]);
+    };
+
+    const { error } = await supabase.from('visits').insert([payload]);
+    if (error) console.error("CRITICAL: Insert failed!", error);
+    else console.log("SUCCESS: Database Insert Success!");
   };
 
-  // Render Logic
-  if (trapSprung) return <div className="trap">HAHA GOT YOU!!</div>;
-  if (isAccessDenied) return <div className="denied">ACCESS DENIED - LOCATION REQUIRED</div>;
+  if (loading) return <div>Performing security sequence...</div>;
+  if (trapSprung) return <div className="trap"><h1>HAHA GOT YOU!!</h1></div>;
+  if (isAccessDenied) return (
+    <div>
+      <h1>ACCESS DENIED</h1>
+      <button onClick={() => window.location.reload()}>Grant Permission to View</button>
+    </div>
+  );
   
+  // Single, unified return logic
   return session ? (
-    <div>Welcome back. <button onClick={() => supabase.auth.signOut()}>Logout</button></div>
+    <Dashboard /> 
   ) : (
-    <button onClick={handleLogin}>Verify Identity</button>
+    <div style={{ textAlign: 'center', marginTop: '100px' }}>
+      <h1>Vault Access</h1>
+      <button onClick={handleLogin}>Verify Identity</button>
+    </div>
   );
 }
