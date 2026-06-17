@@ -8,7 +8,8 @@ export function GooeyText({
   morphTime = 1,
   cooldownTime = 0.25,
   className,
-  textClassName
+  textClassName,
+  align = "center", // "center" | "left"
 }) {
   const text1Ref = React.useRef(null);
   const text2Ref = React.useRef(null);
@@ -84,6 +85,11 @@ export function GooeyText({
     };
   }, [texts, morphTime, cooldownTime]);
 
+  // Controls where the absolutely-positioned spans settle: the flex parent's
+  // justify-content determines their "static position" since they have no
+  // inset values set, which is what lets this stay alignment-aware.
+  const justify = align === "left" ? "justify-start" : "justify-center";
+
   return (
     <div className={cn("relative", className)}>
       <svg className="absolute h-0 w-0" aria-hidden="true" focusable="false">
@@ -103,20 +109,20 @@ export function GooeyText({
       </svg>
 
       <div
-        className="flex items-center justify-center w-full"
+        className={cn("flex items-center w-full", justify)}
         style={{ filter: "url(#threshold)" }}
       >
         <span
           ref={text1Ref}
           className={cn(
-            "absolute inline-block select-none text-center text-5xl md:text-[60pt] font-extrabold tracking-tighter",
+            "absolute inline-block select-none text-center text-6xl md:text-[88px] font-extrabold tracking-tighter",
             textClassName
           )}
         />
         <span
           ref={text2Ref}
           className={cn(
-            "absolute inline-block select-none text-center text-5xl md:text-[60pt] font-extrabold tracking-tighter",
+            "absolute inline-block select-none text-center text-6xl md:text-[88px] font-extrabold tracking-tighter",
             textClassName
           )}
         />
