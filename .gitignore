@@ -44,3 +44,6 @@ build
 .vscode
 .idea
 .DS_Store
+
+# Supabase
+supabase/.temp/
