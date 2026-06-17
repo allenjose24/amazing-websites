@@ -19,7 +19,7 @@ export default function LandingPage({ onLogin }) {
           {/* Left: the hero thesis */}
           <div>
             <div className="flex items-center gap-[var(--s-2)] mb-[var(--s-4)]">
-              <span className="h-2 w-2 rounded-full bg-burgundy" />
+              <span className="h-2 w-2 rounded-full bg-orange" />
               <p className="font-mono text-[13px] tracking-[0.18em] uppercase text-ink/60">
                 Catalog No. 001 — Private Index
               </p>
@@ -35,7 +35,7 @@ export default function LandingPage({ onLogin }) {
                 morphTime={1}
                 cooldownTime={0.4}
                 align="left"
-                textClassName="font-display font-black text-burgundy text-[52px] sm:text-[76px] md:text-[104px] lg:text-[128px] tracking-tight"
+                textClassName="font-display font-black text-orange text-[52px] sm:text-[76px] md:text-[104px] lg:text-[128px] tracking-tight"
               />
             </div>
 
