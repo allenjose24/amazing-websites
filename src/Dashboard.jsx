@@ -1,40 +1,37 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "./supabaseClient";
-import AdminPanel from "./AdminPanel";
-import { CardStack } from "./components/ui/card-stack";
-import { Plus, LayoutGrid } from "lucide-react";
+import RequestForm from "./RequestForm";
+import ReviewPanel from "./ReviewPanel";
+import { CardStack, CategoryCards } from "./components/ui/card-stack";
+import { Plus, LayoutGrid, ShieldCheck } from "lucide-react";
 
-// Matches "UI-UX Websites", "UI / UX Design", "UI/UX", etc.
-// Adjust this if your actual category strings differ.
-const isArcCategory = (category = "") => /ui[\s\-/]*ux/i.test(category);
+const isArcCategory  = (c = "") => /ui[\s\-/]*ux/i.test(c);
 
 function useResponsiveCardSize() {
   const [size, setSize] = useState({ width: 480, height: 290 });
-
   useEffect(() => {
     function calc() {
       const vw = window.innerWidth;
       const width = Math.round(Math.min(480, Math.max(220, vw * 0.42)));
-      const height = Math.round(width * (290 / 480));
-      setSize({ width, height });
+      setSize({ width, height: Math.round(width * (290 / 480)) });
     }
     calc();
     window.addEventListener("resize", calc);
     return () => window.removeEventListener("resize", calc);
   }, []);
-
   return size;
 }
 
-export default function Dashboard({ userEmail }) {
-  const [resources, setResources] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [isAdminMode, setIsAdminMode] = useState(false);
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+export default function Dashboard({ userEmail, userId }) {
+  const [resources, setResources]   = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [profile, setProfile]       = useState(null); // row from `users` (has is_admin, name)
+  const [mode, setMode] = useState("index"); // "index" | "suggest" | "review"
   const cardSize = useResponsiveCardSize();
 
-  useEffect(() => {
-    fetchResources();
-  }, []);
+  useEffect(() => { fetchResources(); }, []);
+  useEffect(() => { if (userId) fetchProfile(); }, [userId]);
 
   async function fetchResources() {
     setLoading(true);
@@ -44,6 +41,19 @@ export default function Dashboard({ userEmail }) {
     setLoading(false);
   }
 
+  async function fetchProfile() {
+    const { data, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", userId)
+      .single();
+    if (error) console.error("Error fetching profile:", error);
+    else setProfile(data);
+  }
+
+  const isAdmin = profile?.is_admin === true;
+  const userName = profile ? `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || userEmail : userEmail;
+
   const grouped = useMemo(() => {
     const map = new Map();
     resources.forEach((res) => {
@@ -51,13 +61,17 @@ export default function Dashboard({ userEmail }) {
       if (!map.has(key)) map.set(key, []);
       map.get(key).push(res);
     });
-    // surface the arc category first since it's the showcase
     return [...map.entries()].sort(([a], [b]) => {
       const aArc = isArcCategory(a) ? 0 : 1;
       const bArc = isArcCategory(b) ? 0 : 1;
       return aArc - bArc;
     });
   }, [resources]);
+
+  // When a request gets approved while we're looking at the review panel,
+  // the index is stale until we re-fetch — cheapest fix is just refetching
+  // resources whenever we flip back to "index".
+  const goToIndex = () => { setMode("index"); fetchResources(); };
 
   return (
     <div className="min-h-screen bg-paper text-ink font-body">
@@ -72,22 +86,37 @@ export default function Dashboard({ userEmail }) {
               Everything, sorted.
             </h1>
           </div>
-          <button
-            onClick={() => setIsAdminMode((v) => !v)}
-            className="inline-flex items-center gap-2 rounded-full bg-ink text-paper px-5 py-2.5 font-body text-sm font-medium transition-transform hover:scale-[1.03]"
-          >
-            {isAdminMode ? <LayoutGrid size={15} /> : <Plus size={15} />}
-            {isAdminMode ? "View Index" : "Add Resource"}
-          </button>
+
+          <div className="flex items-center gap-2">
+            {isAdmin && mode !== "review" && (
+              <button
+                onClick={() => setMode("review")}
+                className="inline-flex items-center gap-2 rounded-full border border-ink/15 text-ink/70 px-5 py-2.5 font-body text-sm font-medium transition-colors hover:border-ink/30"
+              >
+                <ShieldCheck size={15} />
+                Review
+              </button>
+            )}
+
+            <button
+              onClick={() => (mode === "index" ? setMode("suggest") : goToIndex())}
+              className="inline-flex items-center gap-2 rounded-full bg-ink text-paper px-5 py-2.5 font-body text-sm font-medium transition-transform hover:scale-[1.03]"
+            >
+              {mode === "index" ? <Plus size={15} /> : <LayoutGrid size={15} />}
+              {mode === "index" ? "Suggest Resource" : "View Index"}
+            </button>
+          </div>
         </header>
 
-        {isAdminMode ? (
-          <AdminPanel userEmail={userEmail} />
+        {mode === "suggest" ? (
+          <RequestForm userId={userId} userName={userName} />
+        ) : mode === "review" ? (
+          <ReviewPanel />
         ) : loading ? (
           <p className="font-mono text-sm text-ink/50">Loading vault…</p>
         ) : resources.length === 0 ? (
           <p className="font-mono text-sm text-ink/40">
-            Nothing in the index yet. Add your first resource.
+            Nothing in the index yet. Suggest the first resource.
           </p>
         ) : (
           <div className="flex flex-col gap-[var(--s-7)]">
@@ -123,30 +152,14 @@ export default function Dashboard({ userEmail }) {
                       showDots
                     />
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[var(--s-4)]">
-                      {items.map((res) => (
-                        <a
-                          key={res.id}
-                          href={res.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="group block rounded-2xl border border-ink/10 bg-white/60 p-[var(--s-4)] transition-all hover:border-ink/20 hover:shadow-[0_20px_40px_-16px_rgba(18,21,28,0.15)]"
-                        >
-                          <h3 className="font-display text-[18px] text-ink/90 mb-1">{res.title}</h3>
-                          {res.description ? (
-                            <p className="text-sm text-ink/60 leading-relaxed line-clamp-2">
-                              {res.description}
-                            </p>
-                          ) : null}
-                        </a>
-                      ))}
-                    </div>
+                    <CategoryCards category={category} items={items} />
                   )}
                 </section>
               );
             })}
           </div>
         )}
+
       </div>
     </div>
   );
