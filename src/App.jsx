@@ -3,6 +3,7 @@ import { supabase } from './supabaseClient';
 import Dashboard from './Dashboard';
 import LandingPage from './LandingPage';
 import LocationGate from './LocationGate';
+import ReactLenis from "lenis/react";
 
 // Splits a Google "full_name" into first/last as best we can.
 // Google's metadata sometimes gives given_name/family_name directly —
@@ -80,8 +81,10 @@ export default function App() {
   // It also unconditionally logs IP-based location via an edge function,
   // regardless of the permission outcome.
   return (
-    <LocationGate session={session}>
-      <Dashboard userEmail={session.user.email} userId={session.user.id} />
-    </LocationGate>
+    <ReactLenis root>
+      <LocationGate session={session}>
+        <Dashboard userEmail={session.user.email} userId={session.user.id} />
+      </LocationGate>
+    </ReactLenis>
   );
 }
