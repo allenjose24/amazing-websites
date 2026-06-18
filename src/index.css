@@ -43,6 +43,7 @@ body {
   margin: 0;
   font-family: var(--font-body), sans-serif;
   background: var(--color-paper);
+  overflow-x: hidden;
 }
 
 #root {
