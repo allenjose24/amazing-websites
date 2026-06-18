@@ -425,6 +425,7 @@ function DetailDrawer({ res, onClose }) {
 function FilmstripCards({ items }) {
   const [activeImage, setActiveImage] = useState(0);
   const [activeDetail, setActiveDetail] = useState(null);
+  const [hovering, setHovering] = useState(false);
   const cardRefs = useRef([]);
   const containerRef = useRef(null);
 
@@ -445,6 +446,17 @@ function FilmstripCards({ items }) {
     }
   }, [activeImage]);
 
+  useEffect(() => {
+    if (!items.length || activeDetail) return;
+    if (hovering) return;
+
+    const id = setInterval(() => {
+      setActiveImage((prev) => (prev + 1) % items.length);
+    }, 3200);
+
+    return () => clearInterval(id);
+  }, [items.length, hovering, activeDetail]);
+
   return (
     <>
       {activeDetail && <DetailDrawer res={activeDetail} onClose={() => setActiveDetail(null)} />}
@@ -454,6 +466,14 @@ function FilmstripCards({ items }) {
         animate={{ opacity: 1, translateY: 0 }}
         transition={{ duration: 0.3, delay: 0.2 }}
         className="relative w-full overflow-visible"
+        onMouseEnter={() => {
+          if (window.matchMedia("(pointer: coarse)").matches) return;
+          setHovering(true);
+        }}
+        onMouseLeave={() => {
+          if (window.matchMedia("(pointer: coarse)").matches) return;
+          setHovering(false);
+        }}
       >
         <div 
           ref={containerRef}
