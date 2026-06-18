@@ -3,7 +3,7 @@ import { supabase } from "./supabaseClient";
 import RequestForm from "./RequestForm";
 import ReviewPanel from "./ReviewPanel";
 import { CardStack, CategoryCards } from "./components/ui/card-stack";
-import { Plus, LayoutGrid, ShieldCheck, X, Menu } from "lucide-react";
+import { GitPullRequest, Plus, LayoutGrid, ShieldCheck, X, Menu, LogOut, RotateCw } from "lucide-react";
 
 // UI/UX is sorted first — same helper used in card-stack
 const isArcCategory = (c = "") => /ui[\s\-/]*ux/i.test(c);
@@ -55,9 +55,33 @@ export default function Dashboard({ userEmail, userId }) {
   const [mode, setMode]           = useState("index"); // "index" | "suggest" | "review"
   const [menuOpen, setMenuOpen]   = useState(false);
   const [scrolled, setScrolled]   = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [refreshing, setRefreshing]         = useState(false);
   const cardConfig = useResponsiveCardConfig();
 
   useEffect(() => { fetchResources(); }, []);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    setRefreshTrigger((prev) => prev + 1);
+    await fetchResources(true);
+    await new Promise((r) => setTimeout(r, 600));
+    setRefreshing(false);
+  };
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) console.error("Error signing out:", error.message);
+    } catch (err) {
+      console.error("Sign out failed:", err);
+    }
+  };
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [scrolled]);
+
   useEffect(() => { if (userId) fetchProfile(); }, [userId]);
 
   useEffect(() => {
@@ -68,12 +92,12 @@ export default function Dashboard({ userEmail, userId }) {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  async function fetchResources() {
-    setLoading(true);
+  async function fetchResources(silent = false) {
+    if (!silent) setLoading(true);
     const { data, error } = await supabase.from("resources").select("*");
     if (error) console.error("Error fetching resources:", error);
     else setResources(data || []);
-    setLoading(false);
+    if (!silent) setLoading(false);
   }
 
   async function fetchProfile() {
@@ -111,24 +135,31 @@ export default function Dashboard({ userEmail, userId }) {
     <div className="min-h-screen bg-paper text-ink font-body">
       <div className="mx-auto max-w-[1200px] px-6 md:px-[var(--s-5)] pt-4 pb-[var(--s-6)]">
 
-        {/* ── Floating Apple-Style Glassy Nav Bar ── */}
-        <div className={`sticky top-4 z-40 bg-white/70 backdrop-blur-xl border border-ink/10 rounded-2xl shadow-[0_8px_32px_0_rgba(18,21,28,0.06)] transition-all duration-300 mb-[var(--s-5)] ${scrolled ? "py-2 px-6" : "py-4 px-6"}`}>
+        {/* ── Static Apple-Style Glassy Nav Bar (Scrolls with page) ── */}
+        <div className="relative bg-white/70 backdrop-blur-xl border border-ink/10 rounded-2xl shadow-[0_8px_32px_0_rgba(18,21,28,0.06)] p-6 mb-[var(--s-5)]">
           <header className="flex items-center justify-between gap-4">
             <div>
-              <p className={`font-mono tracking-[0.18em] uppercase text-ink/40 transition-all duration-300 ${scrolled ? "opacity-0 h-0 overflow-hidden mb-0 text-[0px]" : "opacity-100 mb-1 text-[11px] sm:text-[12px]"}`}>
+              <p className="font-mono tracking-[0.18em] uppercase text-ink/40 mb-1 text-[11px] sm:text-[12px]">
                 The Vault
               </p>
-              <h1 className={`font-display font-medium transition-all duration-300 leading-[1.1] ${scrolled ? "text-[18px] sm:text-[20px] md:text-[22px]" : "text-[24px] sm:text-[28px] md:text-[32px]"}`}>
+              <h1 className="font-display font-medium leading-[1.1] text-[24px] sm:text-[28px] md:text-[32px]">
                 Everything, sorted.
               </h1>
             </div>
 
-            {/* Desktop nav buttons */}
+            {/* Desktop-only: Full controls when NOT scrolled */}
             <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
+              <button
+                onClick={handleRefresh}
+                title="Refresh Data"
+                className="inline-flex items-center justify-center rounded-full border border-ink/15 text-ink/70 hover:border-ink/30 hover:bg-ink/5 transition-all w-10 h-10 cursor-pointer"
+              >
+                <RotateCw size={15} className={refreshing ? "animate-spin" : ""} />
+              </button>
               {isAdmin && mode !== "review" && (
                 <button
                   onClick={() => setMode("review")}
-                  className={`inline-flex items-center gap-2 rounded-full border border-ink/15 text-ink/70 font-body text-sm font-medium transition-all duration-300 hover:border-ink/30 ${scrolled ? "px-4 py-1.5" : "px-5 py-2.5"}`}
+                  className="inline-flex items-center gap-2 rounded-full border border-ink/15 text-ink/70 font-body text-sm font-medium transition-all duration-300 hover:border-ink/30 px-5 py-2.5"
                 >
                   <ShieldCheck size={15} />
                   <span className="hidden sm:inline">Review</span>
@@ -136,24 +167,47 @@ export default function Dashboard({ userEmail, userId }) {
               )}
               <button
                 onClick={() => (mode === "index" ? setMode("suggest") : goToIndex())}
-                className={`inline-flex items-center gap-2 rounded-full bg-ink text-paper font-body text-sm font-medium transition-all duration-300 hover:scale-[1.03] ${scrolled ? "px-4 py-1.5" : "px-5 py-2.5"}`}
+                className="inline-flex items-center gap-2 rounded-full bg-ink text-paper font-body text-sm font-medium transition-all duration-300 hover:scale-[1.03] px-5 py-2.5"
               >
-                {mode === "index" ? <Plus size={15} /> : <LayoutGrid size={15} />}
-                <span className="hidden sm:inline">{mode === "index" ? "Suggest Resource" : "View Index"}</span>
+                {mode === "index" ? <GitPullRequest size={15} /> : <LayoutGrid size={15} />}
+                <span className="hidden sm:inline">{mode === "index" ? "Contribute" : "View Index"}</span>
+              </button>
+              <button
+                onClick={handleLogout}
+                className="inline-flex items-center gap-2 rounded-full border border-ink/15 text-ink/70 font-body text-sm font-medium transition-all duration-300 hover:border-burgundy/30 hover:text-burgundy hover:bg-burgundy/5 px-5 py-2.5"
+              >
+                <LogOut size={15} />
+                <span className="hidden sm:inline">Log Out</span>
               </button>
             </div>
 
-            {/* Mobile hamburger */}
-            <button
-              className="sm:hidden flex-shrink-0 p-2 rounded-xl border border-ink/12 text-ink/60 hover:border-ink/25 transition-colors"
-              onClick={() => setMenuOpen((o) => !o)}
-              aria-label="Menu"
-            >
-              {menuOpen ? <X size={18} /> : <Menu size={18} />}
-            </button>
+            {/* Mobile-only: Suggest + Hamburger */}
+            <div className="flex sm:hidden items-center gap-2 flex-shrink-0">
+              <button
+                onClick={handleRefresh}
+                title="Refresh Data"
+                className="flex items-center justify-center rounded-full border border-ink/12 text-ink/60 hover:border-ink/25 hover:bg-ink/5 transition-all w-10 h-10 cursor-pointer"
+              >
+                <RotateCw size={14} className={refreshing ? "animate-spin" : ""} />
+              </button>
+              <button
+                onClick={() => (mode === "index" ? setMode("suggest") : goToIndex())}
+                className="inline-flex items-center gap-1.5 rounded-full bg-ink text-paper font-body font-medium transition-all duration-300 hover:scale-[1.03] text-xs px-4 py-2"
+              >
+                {mode === "index" ? <GitPullRequest size={14} /> : <LayoutGrid size={14} />}
+                <span>{mode === "index" ? "Contribute" : "Index"}</span>
+              </button>
+              <button
+                onClick={() => setMenuOpen((o) => !o)}
+                className="flex items-center justify-center rounded-full border border-ink/12 text-ink/60 hover:border-ink/25 hover:bg-ink/5 transition-all w-10 h-10"
+                aria-label="Menu"
+              >
+                {menuOpen ? <X size={18} /> : <Menu size={18} />}
+              </button>
+            </div>
           </header>
 
-          {/* Mobile nav drawer inside sticky bar */}
+          {/* Mobile nav drawer inside static header */}
           {menuOpen && (
             <div className="sm:hidden mt-4 pt-4 border-t border-ink/10 flex flex-col gap-2">
               {isAdmin && mode !== "review" && (
@@ -166,11 +220,61 @@ export default function Dashboard({ userEmail, userId }) {
                 </button>
               )}
               <button
-                onClick={mode === "index" ? () => { setMode("suggest"); setMenuOpen(false); } : goToIndex}
-                className="flex items-center gap-2 w-full rounded-xl bg-ink text-paper px-4 py-3 font-body text-sm font-medium"
+                onClick={() => { handleLogout(); setMenuOpen(false); }}
+                className="flex items-center gap-2 w-full rounded-xl border border-ink/15 text-ink/70 px-4 py-3 font-body text-sm font-medium transition-colors hover:border-burgundy/30 hover:text-burgundy hover:bg-burgundy/5"
               >
-                {mode === "index" ? <Plus size={15} /> : <LayoutGrid size={15} />}
-                {mode === "index" ? "Suggest a Resource" : "View Index"}
+                <LogOut size={15} />
+                Log Out
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* ── Floating Capsule Controls (Fixed when scrolled) ── */}
+        <div className={`fixed top-4 right-6 z-50 bg-white/85 backdrop-blur-xl border border-ink/10 rounded-full shadow-[0_8px_32px_0_rgba(18,21,28,0.08)] p-1.5 flex items-center gap-2 transition-all duration-300 ease-in-out ${
+          scrolled ? "opacity-100 translate-y-0 scale-100 pointer-events-auto" : "opacity-0 -translate-y-4 scale-95 pointer-events-none"
+        }`}>
+          <button
+            onClick={handleRefresh}
+            title="Refresh Data"
+            className="flex items-center justify-center rounded-full border border-ink/12 text-ink/60 hover:border-ink/25 hover:bg-ink/5 transition-all w-8 h-8 cursor-pointer"
+          >
+            <RotateCw size={13} className={refreshing ? "animate-spin" : ""} />
+          </button>
+          <button
+            onClick={() => (mode === "index" ? setMode("suggest") : goToIndex())}
+            className="inline-flex items-center gap-1.5 rounded-full bg-ink text-paper font-body font-medium transition-all duration-300 hover:scale-[1.03] text-xs px-3.5 py-1.5 sm:text-sm sm:px-4 sm:py-1.5"
+          >
+            {mode === "index" ? <GitPullRequest size={14} /> : <LayoutGrid size={14} />}
+            <span className="hidden sm:inline">{mode === "index" ? "Contribute" : "View Index"}</span>
+            <span className="sm:hidden">{mode === "index" ? "Contribute" : "Index"}</span>
+          </button>
+          <button
+            onClick={() => setMenuOpen((o) => !o)}
+            className="flex items-center justify-center rounded-full border border-ink/12 text-ink/60 hover:border-ink/25 hover:bg-ink/5 transition-all w-8 h-8"
+            aria-label="Menu"
+          >
+            {menuOpen ? <X size={15} /> : <Menu size={15} />}
+          </button>
+
+          {/* Floating Dropdown Menu (relative to the capsule) */}
+          {menuOpen && (
+            <div className="absolute right-0 top-[calc(100%+8px)] w-48 bg-white/95 backdrop-blur-xl border border-ink/10 rounded-xl shadow-[0_8px_32px_0_rgba(18,21,28,0.06)] p-1.5 z-50 transition-all duration-200 animate-in fade-in slide-in-from-top-2">
+              {isAdmin && mode !== "review" && (
+                <button
+                  onClick={() => { setMode("review"); setMenuOpen(false); }}
+                  className="flex items-center gap-2 w-full text-left rounded-lg text-ink/70 hover:bg-ink/5 px-3 py-2 font-body text-sm font-medium transition-colors"
+                >
+                  <ShieldCheck size={15} />
+                  Review submissions
+                </button>
+              )}
+              <button
+                onClick={() => { handleLogout(); setMenuOpen(false); }}
+                className="flex items-center gap-2 w-full text-left rounded-lg text-ink/70 hover:text-burgundy hover:bg-burgundy/5 px-3 py-2 font-body text-sm font-medium transition-colors"
+              >
+                <LogOut size={15} />
+                Log Out
               </button>
             </div>
           )}
@@ -178,9 +282,9 @@ export default function Dashboard({ userEmail, userId }) {
 
         {/* ── Content ── */}
         {mode === "suggest" ? (
-          <RequestForm userId={userId} userName={userName} />
+          <RequestForm userId={userId} userName={userName} refreshTrigger={refreshTrigger} />
         ) : mode === "review" ? (
-          <ReviewPanel />
+          <ReviewPanel refreshTrigger={refreshTrigger} />
         ) : loading ? (
           <p className="font-mono text-sm text-ink/50">Loading vault…</p>
         ) : resources.length === 0 ? (

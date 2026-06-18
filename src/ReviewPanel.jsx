@@ -129,13 +129,13 @@ function RequestRow({ request, onApprove, onReject, busy }) {
 // atomically inserts into `resources` and increments the submitter's
 // contribution count — both happen server-side so this can't be spoofed
 // from the client.
-export default function ReviewPanel() {
+export default function ReviewPanel({ refreshTrigger }) {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState(null);
   const [filter, setFilter] = useState('pending'); // 'pending' | 'all'
 
-  useEffect(() => { fetchRequests(); }, []);
+  useEffect(() => { fetchRequests(); }, [refreshTrigger]);
 
   async function fetchRequests() {
     setLoading(true);

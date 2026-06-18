@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 
 // ── Animated submission scene ─────────────────────────────────────────────────
@@ -97,16 +97,16 @@ function SubmitScene({ phase }) {
 
       {/* Label */}
       {phase === 'sending' && (
-        <div style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 12, color: 'rgba(18,21,28,0.4)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+        <div style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 12, color: 'rgba(18,21,28,0.65)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
           Sending request…
         </div>
       )}
       {phase === 'success' && (
         <div className="success-anim" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-          <p style={{ fontFamily: 'var(--font-display, serif)', fontSize: 20, color: 'rgba(18,21,28,0.85)', margin: 0, fontWeight: 500 }}>
+          <p style={{ fontFamily: 'var(--font-display, serif)', fontSize: 20, color: 'rgba(18,21,28,0.95)', margin: 0, fontWeight: 500 }}>
             Request sent.
           </p>
-          <p style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11, color: 'rgba(18,21,28,0.38)', margin: 0, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+          <p style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11, color: 'rgba(18,21,28,0.6)', margin: 0, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
             Waiting on review
           </p>
         </div>
@@ -116,7 +116,7 @@ function SubmitScene({ phase }) {
           <p style={{ fontFamily: 'var(--font-display, serif)', fontSize: 18, color: '#8b2635', margin: 0, fontWeight: 500 }}>
             Something went wrong.
           </p>
-          <p style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11, color: 'rgba(18,21,28,0.38)', margin: 0, letterSpacing: '0.1em' }}>
+          <p style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11, color: 'rgba(18,21,28,0.6)', margin: 0, letterSpacing: '0.1em' }}>
             Check console for details
           </p>
         </div>
@@ -183,7 +183,7 @@ function Field({ label, tag = 'input', hint, ...props }) {
   const El = tag;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <label style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(18,21,28,0.45)' }}>
+      <label style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(18,21,28,0.65)' }}>
         {label}
         {props.required && <span style={{ color: '#b68a35', marginLeft: 3 }}>*</span>}
       </label>
@@ -191,14 +191,14 @@ function Field({ label, tag = 'input', hint, ...props }) {
         {...props}
         style={{
           width: '100%',
-          background: 'rgba(255,255,255,0.7)',
-          border: '1px solid rgba(18,21,28,0.12)',
+          background: 'rgba(255,255,255,0.85)',
+          border: '1px solid rgba(18,21,28,0.22)',
           borderRadius: 10,
           padding: tag === 'textarea' ? '10px 14px' : '0 14px',
           height: tag === 'textarea' ? 88 : 42,
           fontFamily: 'var(--font-body, sans-serif)',
           fontSize: 14,
-          color: 'rgba(18,21,28,0.9)',
+          color: 'rgba(18,21,28,0.95)',
           outline: 'none',
           transition: 'border-color 0.18s, box-shadow 0.18s',
           resize: 'none',
@@ -211,12 +211,12 @@ function Field({ label, tag = 'input', hint, ...props }) {
           props.onFocus?.(e);
         }}
         onBlur={(e) => {
-          e.target.style.borderColor = 'rgba(18,21,28,0.12)';
+          e.target.style.borderColor = 'rgba(18,21,28,0.22)';
           e.target.style.boxShadow = 'none';
           props.onBlur?.(e);
         }}
       />
-      {hint && <p style={{ margin: 0, fontFamily: 'var(--font-mono, monospace)', fontSize: 10, color: 'rgba(18,21,28,0.3)', letterSpacing: '0.06em' }}>{hint}</p>}
+      {hint && <p style={{ margin: 0, fontFamily: 'var(--font-mono, monospace)', fontSize: 10, color: 'rgba(18,21,28,0.55)', letterSpacing: '0.06em' }}>{hint}</p>}
     </div>
   );
 }
@@ -226,12 +226,52 @@ function Field({ label, tag = 'input', hint, ...props }) {
 // `resources` directly anymore — it writes to `requests`, which an admin
 // reviews in ReviewPanel before it shows up in the vault.
 const EMPTY = { title: '', url: '', category: '', description: '', preview_image: '' };
-const CATEGORIES = ['UI / UX Design', 'Animations', 'AI Tools', 'Fonts', 'Code & Repos'];
+const DEFAULT_CATEGORIES = ['UI / UX Design', 'Animations', 'AI Tools', 'Fonts', 'Code & Repos'];
 
-export default function RequestForm({ userId, userName }) {
+export default function RequestForm({ userId, userName, refreshTrigger }) {
+  const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
   const [form, setForm] = useState(EMPTY);
   const [phase, setPhase] = useState('idle'); // idle | sending | success | error
   const wrapRef = useRef(null);
+
+  useEffect(() => {
+    async function fetchLiveCategories() {
+      try {
+        const { data, error } = await supabase
+          .from('resources')
+          .select('category');
+        
+        if (error) {
+          console.error('Error fetching live categories:', error);
+          return;
+        }
+
+        if (data) {
+          const uniqueDb = Array.from(
+            new Set(
+              data
+                .map((item) => item.category?.trim())
+                .filter((c) => c && c !== '')
+            )
+          );
+
+          // Find database categories that aren't already in DEFAULT_CATEGORIES
+          const newCategories = uniqueDb.filter(
+            (c) => !DEFAULT_CATEGORIES.some((d) => d.toLowerCase() === c.toLowerCase())
+          );
+
+          // Sort new categories alphabetically
+          newCategories.sort((a, b) => a.localeCompare(b));
+
+          // Set categories (defaults first, then sorted custom ones)
+          setCategories([...DEFAULT_CATEGORIES, ...newCategories]);
+        }
+      } catch (err) {
+        console.error('Failed to load categories:', err);
+      }
+    }
+    fetchLiveCategories();
+  }, [refreshTrigger]);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -284,20 +324,30 @@ export default function RequestForm({ userId, userName }) {
       <SubmitScene phase={phase} />
 
       {/* header */}
-      <div style={{ padding: '28px 32px 0', borderBottom: '1px solid rgba(18,21,28,0.07)', paddingBottom: 20, marginBottom: 28 }}>
-        <p style={{ margin: 0, fontFamily: 'var(--font-mono, monospace)', fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(18,21,28,0.35)', marginBottom: 6 }}>
-          Vault / Suggest
+      <div
+        className="px-5 pt-6 pb-5 sm:px-8 sm:pt-7 sm:pb-5"
+        style={{
+          borderBottom: '1px solid rgba(18,21,28,0.07)',
+          marginBottom: 28,
+        }}
+      >
+        <p style={{ margin: 0, fontFamily: 'var(--font-mono, monospace)', fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(18,21,28,0.6)', marginBottom: 6 }}>
+          Vault / Contribute
         </p>
-        <h2 style={{ margin: 0, fontFamily: 'var(--font-display, serif)', fontWeight: 500, fontSize: 26, color: 'rgba(18,21,28,0.88)', lineHeight: 1.15 }}>
-          Suggest a resource
+        <h2 style={{ margin: 0, fontFamily: 'var(--font-display, serif)', fontWeight: 500, fontSize: 26, color: 'rgba(18,21,28,0.95)', lineHeight: 1.15 }}>
+          Contribute a resource
         </h2>
       </div>
 
       {/* form */}
-      <form onSubmit={handleSubmit} style={{ padding: '0 32px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <form
+        onSubmit={handleSubmit}
+        className="px-5 pb-6 sm:px-8 sm:pb-8"
+        style={{ display: 'flex', flexDirection: 'column', gap: 20 }}
+      >
 
         {/* row: title + category */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field
             label="Title"
             required
@@ -306,7 +356,7 @@ export default function RequestForm({ userId, userName }) {
             onChange={set('title')}
           />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <label style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(18,21,28,0.45)' }}>
+            <label style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(18,21,28,0.65)' }}>
               Category <span style={{ color: '#b68a35' }}>*</span>
             </label>
             <select
@@ -316,27 +366,27 @@ export default function RequestForm({ userId, userName }) {
               style={{
                 width: '100%',
                 height: 42,
-                background: 'rgba(255,255,255,0.7)',
-                border: '1px solid rgba(18,21,28,0.12)',
+                background: 'rgba(255,255,255,0.85)',
+                border: '1px solid rgba(18,21,28,0.22)',
                 borderRadius: 10,
                 padding: '0 14px',
                 fontFamily: 'var(--font-body, sans-serif)',
                 fontSize: 14,
-                color: form.category ? 'rgba(18,21,28,0.9)' : 'rgba(18,21,28,0.35)',
+                color: form.category ? 'rgba(18,21,28,0.95)' : 'rgba(18,21,28,0.55)',
                 outline: 'none',
                 cursor: 'pointer',
                 appearance: 'none',
-                backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L6 7L11 1' stroke='%2312151c' stroke-opacity='0.35' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`,
+                backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L6 7L11 1' stroke='%2312151c' stroke-opacity='0.55' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`,
                 backgroundRepeat: 'no-repeat',
                 backgroundPosition: 'right 14px center',
                 paddingRight: 36,
                 boxSizing: 'border-box',
               }}
               onFocus={(e) => { e.target.style.borderColor = '#b68a35'; e.target.style.boxShadow = '0 0 0 3px rgba(182,138,53,0.12)'; }}
-              onBlur={(e)  => { e.target.style.borderColor = 'rgba(18,21,28,0.12)'; e.target.style.boxShadow = 'none'; }}
+              onBlur={(e)  => { e.target.style.borderColor = 'rgba(18,21,28,0.22)'; e.target.style.boxShadow = 'none'; }}
             >
               <option value="" disabled>Select category…</option>
-              {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              {categories.map((c) => <option key={c} value={c}>{c}</option>)}
               <option value="__custom__">Other…</option>
             </select>
           </div>
@@ -390,17 +440,17 @@ export default function RequestForm({ userId, userName }) {
             onClick={() => setForm(EMPTY)}
             style={{
               background: 'transparent',
-              border: '1px solid rgba(18,21,28,0.12)',
+              border: '1px solid rgba(18,21,28,0.22)',
               borderRadius: 99,
               padding: '10px 20px',
               fontFamily: 'var(--font-body, sans-serif)',
               fontSize: 13,
-              color: 'rgba(18,21,28,0.5)',
+              color: 'rgba(18,21,28,0.6)',
               cursor: 'pointer',
               transition: 'border-color 0.18s, color 0.18s',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(18,21,28,0.28)'; e.currentTarget.style.color = 'rgba(18,21,28,0.75)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(18,21,28,0.12)'; e.currentTarget.style.color = 'rgba(18,21,28,0.5)'; }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(18,21,28,0.45)'; e.currentTarget.style.color = 'rgba(18,21,28,0.9)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(18,21,28,0.22)'; e.currentTarget.style.color = 'rgba(18,21,28,0.6)'; }}
           >
             Clear
           </button>
