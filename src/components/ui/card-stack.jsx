@@ -426,6 +426,7 @@ function FilmstripCards({ items }) {
   const [activeImage, setActiveImage] = useState(0);
   const [activeDetail, setActiveDetail] = useState(null);
   const [hovering, setHovering] = useState(false);
+  const [aspectRatios, setAspectRatios] = useState({});
   const cardRefs = useRef([]);
   const containerRef = useRef(null);
 
@@ -457,6 +458,8 @@ function FilmstripCards({ items }) {
     return () => clearInterval(id);
   }, [items.length, hovering, activeDetail]);
 
+  const WAVE_HEIGHTS = [11, 15, 12, 17, 13, 16, 10, 14];
+
   return (
     <>
       {activeDetail && <DetailDrawer res={activeDetail} onClose={() => setActiveDetail(null)} />}
@@ -477,19 +480,24 @@ function FilmstripCards({ items }) {
       >
         <div 
           ref={containerRef}
-          className="flex w-full items-center justify-start md:justify-center gap-1.5 overflow-x-auto pb-4 scrollbar-none scroll-smooth px-[12%] md:px-0"
+          className="flex w-full items-center justify-start md:justify-center gap-1.5 overflow-x-auto pb-4 scrollbar-none scroll-smooth px-[12%] md:px-0 h-[21rem]"
         >
           {items.map((res, index) => {
             const isActive = activeImage === index;
+            const ratio = aspectRatios[res.id] || 1.6; // fallback ratio (16:10)
+            const cardHeight = isActive ? "19rem" : `${WAVE_HEIGHTS[index % WAVE_HEIGHTS.length]}rem`;
+            const activeWidth = `clamp(12rem, ${19 * ratio}rem, 32rem)`;
+            const inactiveWidth = "clamp(2.5rem, 10vw, 4rem)";
+
             return (
               <motion.div
                 key={res.id}
                 ref={(el) => (cardRefs.current[index] = el)}
                 className="relative cursor-pointer overflow-hidden rounded-2xl border border-ink/10 bg-white flex-shrink-0 shadow-sm"
-                initial={{ width: "2.5rem", height: "16rem" }}
+                initial={{ width: "2.5rem", height: `${WAVE_HEIGHTS[index % WAVE_HEIGHTS.length]}rem` }}
                 animate={{
-                  width: isActive ? "clamp(12rem, 60vw, 24rem)" : "clamp(2.5rem, 10vw, 4rem)",
-                  height: "16rem",
+                  width: isActive ? activeWidth : inactiveWidth,
+                  height: cardHeight,
                 }}
                 transition={{ duration: 0.3, ease: "easeInOut" }}
                 onClick={() => {
@@ -516,6 +524,13 @@ function FilmstripCards({ items }) {
                         muted
                         playsInline
                         className="w-full h-full object-cover"
+                        onLoadedMetadata={(e) => {
+                          const video = e.currentTarget;
+                          if (video.videoWidth && video.videoHeight) {
+                            const r = video.videoWidth / video.videoHeight;
+                            setAspectRatios((prev) => ({ ...prev, [res.id]: r }));
+                          }
+                        }}
                       />
                     ) : (
                       <img
@@ -523,6 +538,13 @@ function FilmstripCards({ items }) {
                         className="w-full h-full object-cover"
                         alt={res.title}
                         draggable={false}
+                        onLoad={(e) => {
+                          const img = e.currentTarget;
+                          if (img.naturalWidth && img.naturalHeight) {
+                            const r = img.naturalWidth / img.naturalHeight;
+                            setAspectRatios((prev) => ({ ...prev, [res.id]: r }));
+                          }
+                        }}
                       />
                     )
                   ) : (
@@ -720,41 +742,158 @@ function guessType(title = "") {
   return { icon: "📁", ext: "" };
 }
 
+const REPO_CARD_COLORS = [
+  "from-violet-600 to-violet-900",
+  "from-emerald-600 to-emerald-900",
+  "from-rose-600 to-rose-900",
+  "from-amber-600 to-amber-900",
+  "from-sky-600 to-sky-900",
+  "from-fuchsia-600 to-fuchsia-900",
+];
+
+function RepoCard({ res, index, onClick }) {
+  const { icon, ext } = guessType(res.title);
+  const colorClass = REPO_CARD_COLORS[index % REPO_CARD_COLORS.length];
+
+  return (
+    <div
+      onClick={onClick}
+      className={cn(
+        "group relative cursor-pointer overflow-hidden rounded-none border border-ink/10 bg-white/70 backdrop-blur-md",
+        "shadow-lg hover:shadow-2xl hover:scale-[1.02] transition-all duration-300",
+        "h-[260px] flex flex-col justify-between p-6 w-full shrink-0"
+      )}
+    >
+      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-paper/30 to-paper/85" />
+      <div className={`absolute top-0 right-0 w-24 h-24 rounded-full bg-gradient-to-br ${colorClass} opacity-5 blur-xl -mr-6 -mt-6`} />
+
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-xl" role="img" aria-hidden="true">{icon}</span>
+          <span className="font-mono text-[11px] uppercase tracking-wider text-brass bg-ink/5 border border-ink/5 rounded-full px-2.5 py-0.5">
+            {ext || ".git"}
+          </span>
+        </div>
+        <ArrowUpRight 
+          size={14} 
+          className="text-ink/30 group-hover:text-forest group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-300" 
+        />
+      </div>
+
+      {/* Title & Description */}
+      <div className="mt-4 flex-1 min-w-0">
+        <h4 className="font-display text-base font-semibold text-ink group-hover:text-forest transition-colors duration-200 truncate">
+          {res.title}
+        </h4>
+        {res.description ? (
+          <p className="mt-2 font-body text-xs text-ink/65 line-clamp-3 leading-relaxed">
+            {res.description}
+          </p>
+        ) : (
+          <p className="mt-2 font-mono text-[11px] text-ink/35 italic">No repository description provided.</p>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="mt-6 flex items-center justify-between border-t border-ink/5 pt-4">
+        <span className="font-mono text-[10px] text-ink/40 tracking-wider">
+          vault / repos
+        </span>
+        {res.url && (
+          <span className="font-mono text-[10px] text-brass group-hover:underline">
+            view source
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function RepoColumn({ items, y, colIndex, numCols, onCardClick, isMobile }) {
+  return (
+    <motion.div
+      className={cn(
+        "relative flex flex-col gap-3",
+        isMobile ? "w-full" : "w-1/4 min-w-[220px]"
+      )}
+      style={{ y: isMobile ? 0 : y }}
+    >
+      {items.map((res, idx) => (
+        <RepoCard key={res.id} res={res} index={colIndex + idx * numCols} onClick={() => onCardClick(res)} />
+      ))}
+    </motion.div>
+  );
+}
+
 function CodeCards({ items }) {
   const [active, setActive] = useState(null);
+  const gallery = useRef(null);
+  const [dimension, setDimension] = useState({ width: 0, height: 0 });
+
+  const { scrollYProgress } = useScroll({
+    target: gallery,
+    offset: ["start end", "end start"],
+  });
+
+  const { height } = dimension;
+
+  // Staggered parallax translation values for the columns
+  const y1 = useTransform(scrollYProgress, [0, 1], [-80, 80]);
+  const y2 = useTransform(scrollYProgress, [0, 1], [80, -80]);
+  const y3 = useTransform(scrollYProgress, [0, 1], [-40, 40]);
+  const y4 = useTransform(scrollYProgress, [0, 1], [40, -40]);
+
+  useEffect(() => {
+    const resize = () => {
+      setDimension({ width: window.innerWidth, height: window.innerHeight });
+    };
+
+    window.addEventListener("resize", resize);
+    resize();
+
+    return () => {
+      window.removeEventListener("resize", resize);
+    };
+  }, []);
+
+  const isMobile = dimension.width < 768;
+
+  // Compute number of columns dynamically (capped at 4)
+  const numCols = Math.min(isMobile ? 1 : 4, items.length);
+
+  // Distribute items into columns
+  const columns = Array.from({ length: numCols }, (_, colIndex) => {
+    return items.filter((_, idx) => idx % numCols === colIndex);
+  });
+
   return (
     <>
       {active && <DetailDrawer res={active} onClose={() => setActive(null)} />}
-      <div className="rounded-xl border border-ink/12 overflow-hidden">
-        <div className="flex items-center gap-3 px-5 py-3 border-b border-ink/8 bg-white/50">
-          <span className="font-mono text-[11px] text-ink/35 tracking-wide">vault / code-repos</span>
-          <span className="ml-auto font-mono text-[11px] text-ink/22">{items.length} items</span>
-        </div>
-        <div className="divide-y divide-ink/6 bg-white/25">
-          {items.map((res) => {
-            const { icon, ext } = guessType(res.title);
+      
+      {/* Outer section wrapper matching premium dashboard spacing */}
+      <div className="w-full py-12">
+        <div 
+          ref={gallery}
+          className={cn(
+            "relative box-border flex flex-col md:flex-row gap-3 w-full max-w-6xl mx-auto rounded-none bg-paper border border-ink/10 p-4 md:p-6 justify-center items-start h-auto overflow-visible"
+          )}
+        >
+          {/* Ambient background glow inside the gallery wrapper */}
+          <div className="absolute inset-0 bg-gradient-to-br from-paper/30 to-paper/85 pointer-events-none" />
+          
+          {columns.map((colItems, colIndex) => {
+            const yTrans = colIndex === 0 ? y1 : colIndex === 1 ? y2 : colIndex === 2 ? y3 : y4;
             return (
-              <button
-                key={res.id}
-                onClick={() => setActive(res)}
-                className="group w-full flex items-center gap-3 px-5 py-3.5 text-left hover:bg-white/60 transition-colors duration-150"
-              >
-                <span className="text-base flex-shrink-0" role="img" aria-hidden="true">{icon}</span>
-                <div className="flex-1 min-w-0 flex items-baseline gap-2">
-                  <span className="font-mono text-[13px] text-ink/80 group-hover:text-forest transition-colors font-medium">
-                    {res.title}{ext}
-                  </span>
-                  {res.description && (
-                    <span className="font-body text-[12px] text-ink/32 truncate hidden sm:block max-w-xs">
-                      — {res.description}
-                    </span>
-                  )}
-                </div>
-                <ChevronRight
-                  size={13}
-                  className="text-ink/18 group-hover:text-ink/55 flex-shrink-0 transition-colors"
-                />
-              </button>
+              <RepoColumn
+                key={colIndex}
+                items={colItems}
+                y={yTrans}
+                colIndex={colIndex}
+                numCols={numCols}
+                onCardClick={setActive}
+                isMobile={isMobile}
+              />
             );
           })}
         </div>
@@ -805,45 +944,82 @@ const CARD_COLORS = [
   "from-fuchsia-950 via-fuchsia-900 to-fuchsia-950",
 ];
 
-function StickyCodingCard({ res, index, total, onClick }) {
+function StickyCodingCard({ res, index, total, parentRef, onClick }) {
   const vertMargin = typeof window !== "undefined" && window.innerWidth < 768 ? 10 : 22;
   const container = useRef(null);
   const [maxScrollY, setMaxScrollY] = useState(Infinity);
 
-  const rotateValue = useMotionValue(0);
+  const { scrollY } = useScroll();
+
+  useEffect(() => {
+    const calculateOffset = () => {
+      if (!parentRef?.current) return;
+      
+      // Get the absolute offset of the parent container relative to the document
+      const parentRect = parentRef.current.getBoundingClientRect();
+      const parentTop = parentRect.top + window.scrollY;
+
+      // paddingTop = 20vh
+      const paddingTopPx = (20 * window.innerHeight) / 100;
+      // cardHeight = 100 - vertMargin * 2 vh
+      const cardHeightPx = ((100 - vertMargin * 2) * window.innerHeight) / 100;
+      // gap = 10vh
+      const gapPx = (10 * window.innerHeight) / 100;
+
+      // Card static top coordinate relative to the document
+      const cardStaticTop = parentTop + paddingTopPx + index * (cardHeightPx + gapPx);
+
+      // Scroll position where the card reaches top = vertMargin vh
+      const vertMarginPx = (vertMargin * window.innerHeight) / 100;
+      const targetScrollY = cardStaticTop - vertMarginPx;
+
+      setMaxScrollY(targetScrollY);
+    };
+
+    calculateOffset();
+    
+    window.addEventListener("resize", calculateOffset);
+    // Dynamic content or fonts might load later, trigger a delayed calculation
+    const timer = setTimeout(calculateOffset, 500);
+
+    return () => {
+      window.removeEventListener("resize", calculateOffset);
+      clearTimeout(timer);
+    };
+  }, [parentRef, index, vertMargin]);
+
+  // Transform values based on scroll progress relative to maxScrollY
+  const targetScale = useTransform(scrollY, (currentY) => {
+    if (index === total - 1) return 1;
+    if (maxScrollY === Infinity) return 1;
+    if (currentY <= maxScrollY) return 1;
+    const progress = Math.min(1, (currentY - maxScrollY) / 700);
+    return 1 - progress * 0.35; // scale down to 0.65
+  });
+
+  const targetRotate = useTransform(scrollY, (currentY) => {
+    if (index === total - 1) return 0;
+    if (maxScrollY === Infinity) return 0;
+    if (currentY <= maxScrollY) return 0;
+    const progress = Math.min(1, (currentY - maxScrollY) / 700);
+    return progress * 12; // tilt up to 12 degrees
+  });
+
+  const targetOpacity = useTransform(scrollY, (currentY) => {
+    if (index === total - 1) return 1;
+    if (maxScrollY === Infinity) return 1;
+    if (currentY <= maxScrollY) return 1;
+    const progress = Math.min(1, (currentY - maxScrollY) / 700);
+    return 1 - progress; // fade to 0 opacity
+  });
+
+  // Apply smoothing spring config
+  const springConfig = { stiffness: 120, damping: 24, mass: 0.2 };
+  const scale = useSpring(targetScale, springConfig);
+  const rotateValue = useSpring(targetRotate, springConfig);
+  const opacity = useSpring(targetOpacity, springConfig);
+
   const negateRotate = useTransform(rotateValue, (value) => -value);
-  const scale = useMotionValue(1);
-
-  const { scrollY } = useScroll({
-    target: container,
-  });
-
-  const isInView = useInView(container, {
-    margin: `0px 0px -${100 - vertMargin}% 0px`,
-    once: true,
-  });
-
-  useEffect(() => {
-    if (isInView) {
-      setMaxScrollY(scrollY.get());
-    }
-  }, [isInView, scrollY]);
-
-  useEffect(() => {
-    const unsubscribe = scrollY.on("change", (currentY) => {
-      let animationValue = 1;
-
-      if (currentY > maxScrollY) {
-        animationValue = Math.max(0, 1 - (currentY - maxScrollY) / 10000);
-      }
-
-      scale.set(animationValue);
-      rotateValue.set((1 - animationValue) * 100);
-    });
-
-    return unsubscribe;
-  }, [scrollY, maxScrollY]);
-
   const { icon, ext } = guessType(res.title);
   const colorClass = CARD_COLORS[index % CARD_COLORS.length];
 
@@ -855,6 +1031,7 @@ function StickyCodingCard({ res, index, total, onClick }) {
       style={{
         scale,
         rotate: rotateValue,
+        opacity,
         height: `${100 - vertMargin * 2}vh`,
         top: `${vertMargin}vh`,
         transformOrigin: "center center",
@@ -923,6 +1100,7 @@ function StickyCodingCard({ res, index, total, onClick }) {
 
 function StickyCodingCards({ items }) {
   const [active, setActive] = useState(null);
+  const parentRef = useRef(null);
 
   return (
     <>
@@ -933,7 +1111,7 @@ function StickyCodingCards({ items }) {
         />
       )}
 
-      <section className="relative w-full md:left-1/2 md:w-screen md:-translate-x-1/2">
+      <section ref={parentRef} className="relative w-full">
         <div
           className="relative flex flex-col gap-[10vh]"
           style={{
@@ -947,6 +1125,7 @@ function StickyCodingCards({ items }) {
               res={res}
               index={index}
               total={items.length}
+              parentRef={parentRef}
               onClick={() => setActive(res)}
             />
           ))}
