@@ -1,6 +1,6 @@
 import * as React from "react";
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence, useReducedMotion, useInView, useMotionValue, useScroll, useTransform, useSpring } from "framer-motion";
 import { SquareArrowOutUpRight, X, ArrowUpRight, ChevronRight } from "lucide-react";
 
 function cn(...classes) {
@@ -75,6 +75,7 @@ export function CardStack({
 
   const [active, setActive] = React.useState(() => wrapIndex(initialIndex, len));
   const [hovering, setHovering] = React.useState(false);
+  const [activeDetail, setActiveDetail] = React.useState(null);
 
   React.useEffect(() => {
     setActive((a) => wrapIndex(a, len));
@@ -129,12 +130,30 @@ export function CardStack({
   return (
     <div
       className={cn("w-full", className)}
-      onMouseEnter={() => setHovering(true)}
-      onMouseLeave={() => setHovering(false)}
+      onMouseEnter={() => {
+        if (window.matchMedia("(pointer: coarse)").matches) return;
+        setHovering(true);
+      }}
+      onMouseLeave={() => {
+        if (window.matchMedia("(pointer: coarse)").matches) return;
+        setHovering(false);
+      }}
     >
+      {activeDetail && (
+        <DetailDrawer
+          res={{
+            title: activeDetail.title,
+            description: activeDetail.description,
+            preview_image: activeDetail.imageSrc,
+            url: activeDetail.href,
+            category: "UI-UX",
+          }}
+          onClose={() => setActiveDetail(null)}
+        />
+      )}
       <div
         className="relative w-full"
-        style={{ height: Math.max(380, cardHeight + 80) }}
+        style={{ height: Math.max(cardHeight < 200 ? 200 : 380, cardHeight + 80) }}
         tabIndex={0}
         onKeyDown={onKeyDown}
       >
@@ -203,7 +222,13 @@ export function CardStack({
                   }
                   animate={{ opacity: 1, x, y: y + lift, rotateZ, rotateX, scale }}
                   transition={{ type: "spring", stiffness: springStiffness, damping: springDamping }}
-                  onClick={() => setActive(i)}
+                  onClick={() => {
+                    if (isActive) {
+                      setActiveDetail(item);
+                    } else {
+                      setActive(i);
+                    }
+                  }}
                   {...dragProps}
                 >
                   <div
@@ -284,18 +309,16 @@ function DefaultFanCard({ item }) {
         )}
       </div>
 
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/15 to-transparent" />
-
       {item.tag ? (
-        <div className="absolute top-4 left-4 z-10 rounded-full bg-ink/70 px-2.5 py-1 font-mono text-[11px] tracking-wider text-brass backdrop-blur">
+        <div className="absolute top-4 left-4 z-25 rounded-full bg-ink/70 px-2.5 py-1 font-mono text-[11px] tracking-wider text-brass backdrop-blur">
           {item.tag}
         </div>
       ) : null}
 
-      <div className="relative z-10 flex h-full flex-col justify-end p-5">
-        <div className="truncate font-display text-lg font-semibold text-white">{item.title}</div>
+      <div className="absolute inset-x-0 bottom-0 z-20 p-5 pt-8 bg-gradient-to-t from-black/85 via-black/50 to-transparent backdrop-blur-[1px] rounded-b-2xl">
+        <div className="truncate font-display text-lg font-semibold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">{item.title}</div>
         {item.description ? (
-          <div className="mt-1 line-clamp-2 text-sm text-white/80">{item.description}</div>
+          <div className="mt-1 line-clamp-2 text-sm text-white/85">{item.description}</div>
         ) : null}
       </div>
     </div>
@@ -304,10 +327,11 @@ function DefaultFanCard({ item }) {
 
 // ── shifted cards code ──
 
-const isAnimCategory = (c = "") => /anim/i.test(c);
-const isAICategory   = (c = "") => /ai\b|artificial|tool/i.test(c);
-const isFontCategory = (c = "") => /font/i.test(c) || /type/i.test(c) || /typograph/i.test(c);
-const isCodeCategory = (c = "") => /code/i.test(c) || /repo/i.test(c) || /git/i.test(c) || /dev/i.test(c);
+const isAnimCategory   = (c = "") => /anim/i.test(c);
+const isAICategory     = (c = "") => /ai\b|artificial|tool/i.test(c);
+const isFontCategory   = (c = "") => /font/i.test(c) || /type/i.test(c) || /typograph/i.test(c);
+const isCodingCategory = (c = "") => /coding/i.test(c);
+const isRepoCategory   = (c = "") => /repo/i.test(c) || /git/i.test(c) || /code/i.test(c) && !/coding/i.test(c);
 
 // ── Shared detail drawer (modal) ──────────────────────────────────────────────
 function DetailDrawer({ res, onClose }) {
@@ -319,16 +343,40 @@ function DetailDrawer({ res, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
-      style={{ background: "rgba(18,21,28,0.55)", backdropFilter: "blur(4px)" }}
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center overflow-hidden"
+      style={{ background: "rgba(18,21,28,0.4)" }}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
+      {/* Immersive blurred backdrop media */}
+      {res.preview_image && (
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-60">
+          {res.preview_image.endsWith(".webm") ? (
+            <video 
+              src={res.preview_image} 
+              autoPlay 
+              loop 
+              muted 
+              playsInline 
+              className="w-full h-full object-cover scale-105 filter blur-[6px]" 
+            />
+          ) : (
+            <img 
+              src={res.preview_image} 
+              alt="" 
+              className="w-full h-full object-cover scale-105 filter blur-[6px]" 
+            />
+          )}
+          {/* Subtle overlay mask */}
+          <div className="absolute inset-0 bg-black/15" />
+        </div>
+      )}
+
       <div
-        className="relative w-full max-w-lg mx-4 rounded-2xl bg-paper border border-ink/10 overflow-hidden"
+        className="relative w-full max-w-lg mx-4 rounded-2xl bg-paper/90 backdrop-blur-xl border border-ink/10 overflow-hidden z-10"
         style={{ boxShadow: "0 40px 80px -20px rgba(18,21,28,0.35)" }}
       >
         {res.preview_image && (
-          <div className="w-full h-48 overflow-hidden">
+          <div className="w-full h-48 overflow-hidden relative border-b border-ink/5 bg-ink/5 z-10">
             {res.preview_image.endsWith(".webm") ? (
               <video src={res.preview_image} autoPlay loop muted playsInline className="w-full h-full object-cover" />
             ) : (
@@ -336,7 +384,7 @@ function DetailDrawer({ res, onClose }) {
             )}
           </div>
         )}
-        <div className="p-8">
+        <div className="p-8 relative z-20">
           <p className="font-mono text-[11px] tracking-[0.18em] uppercase text-brass mb-2">
             {res.category}
           </p>
@@ -363,7 +411,7 @@ function DetailDrawer({ res, onClose }) {
         </div>
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-ink/30 hover:text-ink/70 transition-colors"
+          className="absolute top-4 right-4 text-ink/30 hover:text-ink/70 transition-colors z-35"
           aria-label="Close"
         >
           <X size={18} />
@@ -373,59 +421,138 @@ function DetailDrawer({ res, onClose }) {
   );
 }
 
-// ── ANIMATIONS: Filmstrip ─────────────────────────────────────────────────────
+// ── ANIMATIONS: Horizontal Hover Expand (HoverExpand_001) ──────────────────────
 function FilmstripCards({ items }) {
-  const [active, setActive] = useState(null);
+  const [activeImage, setActiveImage] = useState(0);
+  const [activeDetail, setActiveDetail] = useState(null);
+  const cardRefs = useRef([]);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const activeEl = cardRefs.current[activeImage];
+    if (container && activeEl) {
+      const containerWidth = container.clientWidth;
+      const elementOffsetLeft = activeEl.offsetLeft;
+      const elementWidth = activeEl.clientWidth;
+
+      const targetScrollLeft = elementOffsetLeft - (containerWidth / 2) + (elementWidth / 2);
+
+      container.scrollTo({
+        left: targetScrollLeft,
+        behavior: "smooth",
+      });
+    }
+  }, [activeImage]);
+
   return (
     <>
-      {active && <DetailDrawer res={active} onClose={() => setActive(null)} />}
-      <div className="relative select-none">
-        {/* sprocket holes top */}
-        <div className="flex overflow-hidden mb-1.5 pl-1 gap-1">
-          {Array.from({ length: 36 }).map((_, i) => (
-            <div key={i} className="flex-shrink-0 w-5 h-2.5 rounded-sm border border-ink/12 bg-ink/5" />
-          ))}
-        </div>
-        {/* scroll strip */}
-        <div
-          className="flex gap-3 overflow-x-auto pb-2"
-          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+      {activeDetail && <DetailDrawer res={activeDetail} onClose={() => setActiveDetail(null)} />}
+      
+      <motion.div
+        initial={{ opacity: 0, translateY: 20 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{ duration: 0.3, delay: 0.2 }}
+        className="relative w-full overflow-visible"
+      >
+        <div 
+          ref={containerRef}
+          className="flex w-full items-center justify-start md:justify-center gap-1.5 overflow-x-auto pb-4 scrollbar-none scroll-smooth px-[12%] md:px-0"
         >
-          {items.map((res, i) => (
-            <button
-              key={res.id}
-              onClick={() => setActive(res)}
-              className="group relative flex-shrink-0 rounded-lg overflow-hidden border border-ink/12 bg-ink/4 hover:border-brass/40 transition-all duration-300"
-              style={{ width: 220, height: 148 }}
-            >
-              {res.preview_image ? (
-                res.preview_image.endsWith(".webm") ? (
-                  <video src={res.preview_image} autoPlay loop muted playsInline className="w-full h-full object-cover" />
-                ) : (
-                  <img src={res.preview_image} alt={res.title} className="w-full h-full object-cover" />
-                )
-              ) : (
-                <div className="w-full h-full flex items-center justify-center font-display text-[13px] text-ink/20 italic p-4 text-center leading-snug">
-                  {res.title}
+          {items.map((res, index) => {
+            const isActive = activeImage === index;
+            return (
+              <motion.div
+                key={res.id}
+                ref={(el) => (cardRefs.current[index] = el)}
+                className="relative cursor-pointer overflow-hidden rounded-2xl border border-ink/10 bg-white flex-shrink-0 shadow-sm"
+                initial={{ width: "2.5rem", height: "16rem" }}
+                animate={{
+                  width: isActive ? "clamp(12rem, 60vw, 24rem)" : "clamp(2.5rem, 10vw, 4rem)",
+                  height: "16rem",
+                }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                onClick={() => {
+                  if (isActive) {
+                    setActiveDetail(res);
+                  } else {
+                    setActiveImage(index);
+                  }
+                }}
+                onHoverStart={() => {
+                  if (!window.matchMedia("(pointer: coarse)").matches) {
+                    setActiveImage(index);
+                  }
+                }}
+              >
+                {/* Image / Video preview */}
+                <div className="absolute inset-0 w-full h-full">
+                  {res.preview_image ? (
+                    res.preview_image.endsWith(".webm") ? (
+                      <video
+                        src={res.preview_image}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <img
+                        src={res.preview_image}
+                        className="w-full h-full object-cover"
+                        alt={res.title}
+                        draggable={false}
+                      />
+                    )
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-ink/5 font-mono text-[10px] text-ink/30 text-center px-2">
+                      {isActive ? res.title : ""}
+                    </div>
+                  )}
                 </div>
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <div className="absolute top-2 left-2 font-mono text-[10px] text-brass/70 tabular-nums">
-                {String(i + 1).padStart(2, "0")}
-              </div>
-              <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-200">
-                <p className="font-body text-[12px] text-white font-medium leading-tight truncate">{res.title}</p>
-              </div>
-            </button>
-          ))}
+
+                {/* Dark overlay for compressed cards to make vertical text readable */}
+                {!isActive && (
+                  <div className="absolute inset-0 bg-black/55 hover:bg-black/45 transition-colors z-10 pointer-events-none" />
+                )}
+
+                {/* Vertical title for compressed cards - dropped down towards the bottom */}
+                {!isActive && (
+                  <div className="absolute inset-x-0 bottom-8 h-20 flex items-center justify-center pointer-events-none z-20 overflow-hidden">
+                    <span className="font-display font-bold text-[12px] text-white whitespace-nowrap -rotate-90 origin-center tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] max-w-[150px] truncate">
+                      {res.title}
+                    </span>
+                  </div>
+                )}
+
+                <AnimatePresence>
+                  {isActive && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="absolute inset-x-0 bottom-0 p-4 pt-10 flex flex-col justify-end pointer-events-none z-20 bg-gradient-to-t from-black/85 via-black/45 to-transparent backdrop-blur-[1px]"
+                    >
+                      <p className="font-mono text-[10px] text-brass tracking-wider">
+                        #{String(index + 1).padStart(2, "0")}
+                      </p>
+                      <h3 className="font-display text-sm font-semibold truncate leading-tight mt-0.5 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
+                        {res.title}
+                      </h3>
+                      {res.description && (
+                        <p className="font-body text-[11px] text-white/70 line-clamp-1 mt-0.5">
+                          {res.description}
+                        </p>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            );
+          })}
         </div>
-        {/* sprocket holes bottom */}
-        <div className="flex overflow-hidden mt-1.5 pl-1 gap-1">
-          {Array.from({ length: 36 }).map((_, i) => (
-            <div key={i} className="flex-shrink-0 w-5 h-2.5 rounded-sm border border-ink/12 bg-ink/5" />
-          ))}
-        </div>
-      </div>
+      </motion.div>
     </>
   );
 }
@@ -649,10 +776,171 @@ function EditorialCards({ items }) {
 }
 
 // ── Route to the right layout ─────────────────────────────────────────────────
+const CARD_COLORS = [
+  "from-violet-950 via-violet-900 to-violet-950",
+  "from-emerald-950 via-emerald-900 to-emerald-950",
+  "from-rose-950 via-rose-900 to-rose-950",
+  "from-amber-950 via-amber-900 to-amber-950",
+  "from-sky-950 via-sky-900 to-sky-950",
+  "from-fuchsia-950 via-fuchsia-900 to-fuchsia-950",
+];
+
+function StickyCodingCard({ res, index, total, onClick }) {
+  const vertMargin = typeof window !== "undefined" && window.innerWidth < 768 ? 10 : 22;
+  const container = useRef(null);
+  const [maxScrollY, setMaxScrollY] = useState(Infinity);
+
+  const rotateValue = useMotionValue(0);
+  const negateRotate = useTransform(rotateValue, (value) => -value);
+  const scale = useMotionValue(1);
+
+  const { scrollY } = useScroll({
+    target: container,
+  });
+
+  const isInView = useInView(container, {
+    margin: `0px 0px -${100 - vertMargin}% 0px`,
+    once: true,
+  });
+
+  useEffect(() => {
+    if (isInView) {
+      setMaxScrollY(scrollY.get());
+    }
+  }, [isInView, scrollY]);
+
+  useEffect(() => {
+    const unsubscribe = scrollY.on("change", (currentY) => {
+      let animationValue = 1;
+
+      if (currentY > maxScrollY) {
+        animationValue = Math.max(0, 1 - (currentY - maxScrollY) / 10000);
+      }
+
+      scale.set(animationValue);
+      rotateValue.set((1 - animationValue) * 100);
+    });
+
+    return unsubscribe;
+  }, [scrollY, maxScrollY]);
+
+  const { icon, ext } = guessType(res.title);
+  const colorClass = CARD_COLORS[index % CARD_COLORS.length];
+
+  return (
+    <motion.div
+      ref={container}
+      onClick={onClick}
+      className="sticky mx-auto w-[calc(100%-2rem)] md:w-full max-w-2xl overflow-hidden rounded-[32px] shadow-2xl cursor-pointer"
+      style={{
+        scale,
+        rotate: rotateValue,
+        height: `${100 - vertMargin * 2}vh`,
+        top: `${vertMargin}vh`,
+        transformOrigin: "center center",
+      }}
+    >
+      <motion.div
+        className="absolute inset-0"
+        style={{
+          rotate: negateRotate,
+          scale: 1.25,
+        }}
+      >
+        {res.preview_image ? (
+          res.preview_image.endsWith(".webm") ? (
+            <video
+              src={res.preview_image}
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <img
+              src={res.preview_image}
+              alt={res.title}
+              className="h-full w-full object-cover"
+              draggable={false}
+            />
+          )
+        ) : (
+          <div className={`h-full w-full bg-gradient-to-br ${colorClass} flex items-center justify-center relative overflow-hidden`}>
+            <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-white/5 blur-3xl" />
+            <div className="absolute -bottom-24 -right-24 w-96 h-96 rounded-full bg-white/5 blur-3xl" />
+            <span className="text-[160px] opacity-[0.04] select-none">{icon}</span>
+          </div>
+        )}
+      </motion.div>
+
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent z-10 pointer-events-none" />
+
+      <div className="absolute bottom-0 left-0 right-0 z-20 p-6 sm:p-10 text-white">
+        <div className="flex items-center gap-3 mb-2">
+          <span className="text-xl">{icon}</span>
+          <span className="font-mono text-xs uppercase tracking-wider text-brass bg-black/40 border border-white/10 rounded-full px-3 py-1">
+            {ext || ".code"}
+          </span>
+          <span className="font-mono text-xs text-white/30 ml-auto">
+            #{String(index + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
+          </span>
+        </div>
+
+        <h3 className="font-display text-2xl sm:text-4xl font-semibold mb-2 group-hover:text-brass transition-colors duration-200">
+          {res.title}
+        </h3>
+
+        {res.description && (
+          <p className="max-w-2xl text-white/75 leading-relaxed text-sm sm:text-[15px] line-clamp-2">
+            {res.description}
+          </p>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+function StickyCodingCards({ items }) {
+  const [active, setActive] = useState(null);
+
+  return (
+    <>
+      {active && (
+        <DetailDrawer
+          res={active}
+          onClose={() => setActive(null)}
+        />
+      )}
+
+      <section className="relative w-full md:left-1/2 md:w-screen md:-translate-x-1/2">
+        <div
+          className="relative flex flex-col gap-[10vh]"
+          style={{
+            paddingTop: "20vh",
+            paddingBottom: "20vh",
+          }}
+        >
+          {items.map((res, index) => (
+            <StickyCodingCard
+              key={res.id}
+              res={res}
+              index={index}
+              total={items.length}
+              onClick={() => setActive(res)}
+            />
+          ))}
+        </div>
+      </section>
+    </>
+  );
+}
+
 export function CategoryCards({ category, items }) {
-  if (isAnimCategory(category)) return <FilmstripCards items={items} />;
-  if (isAICategory(category))   return <TerminalCards items={items} />;
-  if (isFontCategory(category)) return <FontCards items={items} />;
-  if (isCodeCategory(category)) return <CodeCards items={items} />;
+  if (isAnimCategory(category))   return <FilmstripCards items={items} />;
+  if (isAICategory(category))     return <TerminalCards items={items} />;
+  if (isFontCategory(category))   return <FontCards items={items} />;
+  if (isCodingCategory(category)) return <StickyCodingCards items={items} />;
+  if (isRepoCategory(category))   return <CodeCards items={items} />;
   return <EditorialCards items={items} />;
 }
