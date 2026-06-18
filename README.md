@@ -53,13 +53,15 @@ Access to the resource dashboard is protected by a dual-stage verification seque
 
 ## 🎨 UI & Interactive Components
 
-The frontend values premium aesthetics, fluid motion design, and Tailwind-free vanilla CSS layouts:
+The frontend values premium aesthetics, fluid motion design, and high-quality user experiences:
 
 | Component | Description | Tech Highlight |
 | :--- | :--- | :--- |
 | **Gooey Text Morphing** | Dynamic text animation scene on the landing page. | Canvas-free pure CSS/SVG filters |
 | **Location Gate UI** | Centered blocking modal requesting location context. | HSL theme variables + Micro-animations |
+| **Floating Glassy Nav Bar** | Apple-style floating header featuring responsive mobile drawer menu and scroll-dependent scale transitions. | Glassmorphism, backdrop-blur, CSS transitions |
 | **Card Stack** | Multi-layered interactive carousel presenting resources. | High-performance transform-based swiping |
+| **Sticky Coding Stack** | Stacking interactive cards that shrink, rotate, and fade out smoothly as you scroll. | Linear scroll tracking, Framer Motion, layout overflow-safe |
 | **Category Cards** | Dedicated card skins for categories (Filmstrip, Terminal, Font, Code, Editorial). | Embedded `.webm` loop support + Custom SVG icons |
 | **Request Form** | Suggestion UI featuring a detailed simulated sending workflow. | CSS Keyframes for realistic envelope-delivery animation |
 
@@ -67,8 +69,9 @@ The frontend values premium aesthetics, fluid motion design, and Tailwind-free v
 
 ## 🛠️ Tech Stack
 
-* **Frontend**: React 18, Vite, Lucide Icons
-* **Styling**: Pure CSS Variables & Custom Theme Tokens (Gooey, Glassmorphism, Responsive Grid System)
+* **Frontend**: React 19, Vite, Framer Motion, Lucide Icons
+* **Smooth Scrolling**: Lenis (`lenis/react`) root-level smooth scroll container
+* **Styling**: TailwindCSS & Pure CSS Variables (Glassmorphism, Responsive Grid System)
 * **Backend**: Supabase Auth (Google Provider), Supabase Database (PostgreSQL)
 * **Edge Compute**: Deno Deploy / Supabase Edge Functions
 * **Third-Party Services**: `ipapi.co` (IP Geolocation Lookup)
