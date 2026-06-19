@@ -4,6 +4,20 @@ A secure, premium visual repository for curating design resources, UI/UX animati
 
 ---
 
+## 📖 Comprehensive Documentation (Wikis)
+
+For in-depth explanations of the system design, database schemas, edge configurations, and visual animations, check out the **[Official GitHub Wiki](https://github.com/allenjose24/amazing-websites/wiki)** or explore the pages directly in the codebase:
+
+* **[Wiki Home](./docs/Home.md)**: Repository overview, philosophy, design system, and code structure.
+* **[Architecture & Data Flows](./docs/Architecture-&-Flows.md)**: System interactions, login sequences, location audits, and submission pipelines.
+* **[Database Schema & RLS](./docs/Database-Schema-&-RLS.md)**: Table definitions, triggers, constraints, security checks, and admin RPC transactions.
+* **[Edge Functions](./docs/Edge-Functions.md)**: Server-side geocoding and visitor IP logging via Deno Deploy.
+* **[Frontend Structure & State](./docs/Frontend-Structure-&-State.md)**: React 19 bootstrappers, Auth listeners, Location Gate lifecycles, and dashboard components.
+* **[Interactive UI Components](./docs/Interactive-UI-Components.md)**: Matrix calculations for gooey text morphs, card stacks, custom layouts, and form animations.
+* **[GitHub Wiki Hosting Guide](./docs/GitHub-Wiki-Hosting-Guide.md)**: Publishing details for GitHub Wiki deployment.
+
+---
+
 ## 🏗️ System Architecture
 
 The application is built on a modern decoupled architecture using a client-side single page application (SPA) paired with a backend-as-a-service (BaaS) and serverless edge compute.
