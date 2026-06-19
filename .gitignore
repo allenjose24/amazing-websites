@@ -47,3 +47,7 @@ build
 
 # Supabase
 supabase/.temp/
+
+# Cloned Wiki Repo
+*.wiki/
+amazing-websites.wiki/
