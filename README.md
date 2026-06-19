@@ -8,13 +8,13 @@ A secure, premium visual repository for curating $\color{#e35b30}{\text{design r
 
 For in-depth explanations of the system design, database schemas, edge configurations, and visual animations, check out the **[Official GitHub Wiki](https://github.com/allenjose24/amazing-websites/wiki)** or explore the pages directly in the codebase:
 
-* **[Wiki Home](./docs/Home.md)**: Repository overview, philosophy, design system, and code structure.
-* **[Architecture & Data Flows](./docs/Architecture-&-Flows.md)**: System interactions, login sequences, location audits, and submission pipelines.
-* **[Database Schema & RLS](./docs/Database-Schema-&-RLS.md)**: Table definitions, triggers, constraints, security checks, and admin RPC transactions.
-* **[Edge Functions](./docs/Edge-Functions.md)**: Server-side geocoding and visitor IP logging via Deno Deploy.
-* **[Frontend Structure & State](./docs/Frontend-Structure-&-State.md)**: React 19 bootstrappers, Auth listeners, Location Gate lifecycles, and dashboard components.
-* **[Interactive UI Components](./docs/Interactive-UI-Components.md)**: Matrix calculations for gooey text morphs, card stacks, custom layouts, and form animations.
-* **[GitHub Wiki Hosting Guide](./docs/GitHub-Wiki-Hosting-Guide.md)**: Publishing details for GitHub Wiki deployment.
+* **[$\color{#b68a35}{\text{Wiki Home}}$](./docs/Home.md)**: Repository overview, philosophy, design system, and code structure.
+* **[$\color{#e35b30}{\text{Architecture \& Data Flows}}$](./docs/Architecture-&-Flows.md)**: System interactions, login sequences, location audits, and submission pipelines.
+* **[$\color{#1f4d3d}{\text{Database Schema \& RLS}}$](./docs/Database-Schema-&-RLS.md)**: Table definitions, triggers, constraints, security checks, and admin RPC transactions.
+* **[$\color{#639922}{\text{Edge Functions}}$](./docs/Edge-Functions.md)**: Server-side geocoding and visitor IP logging via Deno Deploy.
+* **[$\color{#e35b30}{\text{Frontend Structure \& State}}$](./docs/Frontend-Structure-&-State.md)**: React 19 bootstrappers, Auth listeners, Location Gate lifecycles, and dashboard components.
+* **[$\color{#b68a35}{\text{Interactive UI Components}}$](./docs/Interactive-UI-Components.md)**: Matrix calculations for gooey text morphs, card stacks, custom layouts, and form animations.
+* **[$\color{#0066cc}{\text{GitHub Wiki Hosting Guide}}$](./docs/GitHub-Wiki-Hosting-Guide.md)**: Publishing details for GitHub Wiki deployment.
 
 ---
 
@@ -49,17 +49,17 @@ flowchart TD
 
 This application implements a multi-layered security protocol designed to protect the integrity of the resource index and enforce compliance policies:
 
-### 1. Geolocation Enforcement (The Location Gate)
+### 1. $\color{#8b2635}{\text{Geolocation Enforcement (The Location Gate)}}$
 Access to the resource dashboard is protected by a dual-stage verification sequence:
-* **Unconditional Server-Side Audit**: Upon mounting, the client triggers the `log-ip-visit` Deno Edge Function. This reads the real connection IP (`x-real-ip` / `x-forwarded-for`) to prevent client-side spoofing, fetches geodata from `ipapi.co`, and saves a permanent connection log to the database.
-* **Browser Geolocation Prompt**: Standard browser-level GPS coordinates are requested. A granted prompt records coordinate-based visits and opens the gate. A denied prompt logs a rejection state and renders a blocking gate UI.
-* **Database RLS Verification**: Row Level Security (RLS) on the database ensures that content reads from the `resources` table are only permitted if the requesting user has a valid, recent location grant in the `visits` ledger (configured via SQL trigger checking `has_recent_granted_location`).
+* **$\color{#8b2635}{\text{Unconditional Server-Side Audit}}$**: Upon mounting, the client triggers the `log-ip-visit` Deno Edge Function. This reads the real connection IP (`x-real-ip` / `x-forwarded-for`) to prevent client-side spoofing, fetches geodata from `ipapi.co`, and saves a permanent connection log to the database.
+* **$\color{#0066cc}{\text{Browser Geolocation Prompt}}$**: Standard browser-level GPS coordinates are requested. A granted prompt records coordinate-based visits and opens the gate. A denied prompt logs a rejection state and renders a blocking gate UI.
+* **$\color{#1f4d3d}{\text{Database RLS Verification}}$**: Row Level Security (RLS) on the database ensures that content reads from the `resources` table are only permitted if the requesting user has a valid, recent location grant in the `visits` ledger (configured via SQL trigger checking `has_recent_granted_location`).
 
-### 2. User Authentication & Profile Synchronization
+### 2. $\color{#b68a35}{\text{User Authentication \& Profile Synchronization}}$
 * Integrated with **Google OAuth** via Supabase Auth.
 * Upon login or token refresh, user profiles are automatically synchronized with the database `users` table, generating clean, split first/last name columns from metadata.
 
-### 3. Separation of Concerns & Admin Authorization
+### 3. $\color{#1f4d3d}{\text{Separation of Concerns \& Admin Authorization}}$
 * **Suggest/Review Pipeline**: Standard users can suggest resources through the `RequestForm`, which records drafts to the `requests` table instead of editing live resources.
 * **Atomic RPC Operations**: Administrator actions are processed through database remote procedure calls (`approve_request` and `reject_request`). The transition of a suggestion to the live `resources` index and the addition of contribution metrics happen transactionally on the server side to eliminate tampering.
 
@@ -69,7 +69,7 @@ Access to the resource dashboard is protected by a dual-stage verification seque
 
 To enforce code compliance, automate vulnerability scanning, and coordinate code reviews, the repository implements the following policies:
 
-### 1. Continuous Integration (CI) Pipeline
+### 1. $\color{#0066cc}{\text{Continuous Integration (CI) Pipeline}}$
 * **Configuration**: Located in [.github/workflows/ci.yml](file:///d:/antigravity/amazing-websites/.github/workflows/ci.yml).
 * **Environment**: Runs inside a clean Ubuntu runtime utilizing **Node.js v22** (matching Vite requirements).
 * **Checks Triggered**: Executed on push/PR events to `main` and `feat` branches.
@@ -77,21 +77,21 @@ To enforce code compliance, automate vulnerability scanning, and coordinate code
   * **Linter Quality Checks**: Runs `npm run lint` to enforce ESLint standards, code styling compliance, and hooks verification.
   * **Production Compilation Verification**: Runs `npm run build` to confirm Vite bundles assets without syntax errors.
 
-### 2. Dependabot Dependency Auditing
+### 2. $\color{#b68a35}{\text{Dependabot Dependency Auditing}}$
 * **Configuration**: Located in [.github/dependabot.yml](file:///d:/antigravity/amazing-websites/.github/dependabot.yml).
 * **Monitoring Rules**:
   * **npm Packages**: Checks `package.json` dependencies weekly for known security vulnerabilities and automatically creates PRs to patch them.
   * **GitHub Actions**: Audits and auto-patches actions version tags in workflows.
 
-### 3. Automatic Code Review Assignment (CODEOWNERS)
+### 3. $\color{#8b2635}{\text{Automatic Code Review Assignment (CODEOWNERS)}}$
 * **Configuration**: Located in [.github/CODEOWNERS](file:///d:/antigravity/amazing-websites/.github/CODEOWNERS).
 * **Policy**: Automatically assigns `@allenjose24` as a required reviewer on **all pull requests** and changes across the codebase.
 
-### 4. Community Templates
+### 4. $\color{#639922}{\text{Community Templates}}$
 * **Issue Templates**: Standardized bug report and feature request skeletons reside in [.github/ISSUE_TEMPLATE/](file:///d:/antigravity/amazing-websites/.github/ISSUE_TEMPLATE/) to guide contributors on reporting bugs or proposing features.
 * **Task Ideas Catalog**: Saved at [docs/Issue-Ideas-Template.md](file:///d:/antigravity/amazing-websites/docs/Issue-Ideas-Template.md) to serve as a copy-paste catalog for development sprints.
 
-### 5. Repository Protection (Recommended GitHub Configurations)
+### 5. $\color{#8b2635}{\text{Repository Protection (Recommended GitHub Configurations)}}$
 To fully enforce this policy framework, configure the following inside your GitHub settings panel:
 * **Branch Protection**: Go to *Settings -> Branches -> Add protection rule* on `main`. Set **"Require a pull request before merging"** and **"Require status checks to pass before merging"** (selecting our `verify` job status check).
 * **Secret Scanning**: Enable *Secret scanning* and *Push protection* under *Settings -> Code security* to prevent API credentials from being committed to your repository history.
