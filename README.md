@@ -9,10 +9,10 @@ A secure, premium visual repository for curating $\color{#e35b30}{\text{design r
 For in-depth explanations of the system design, database schemas, edge configurations, and visual animations, check out the **[Official GitHub Wiki](https://github.com/allenjose24/amazing-websites/wiki)** or explore the pages directly in the codebase:
 
 * **[$\color{#b68a35}{\text{Wiki Home}}$](./docs/Home.md)**: Repository overview, philosophy, design system, and code structure.
-* **[$\color{#e35b30}{\text{Architecture \& Data Flows}}$](./docs/Architecture-&-Flows.md)**: System interactions, login sequences, location audits, and submission pipelines.
-* **[$\color{#1f4d3d}{\text{Database Schema \& RLS}}$](./docs/Database-Schema-&-RLS.md)**: Table definitions, triggers, constraints, security checks, and admin RPC transactions.
+* **[$\color{#e35b30}{\text{Architecture}}$ & $\color{#e35b30}{\text{Data Flows}}$](./docs/Architecture-&-Flows.md)**: System interactions, login sequences, location audits, and submission pipelines.
+* **[$\color{#1f4d3d}{\text{Database Schema}}$ & $\color{#1f4d3d}{\text{RLS}}$](./docs/Database-Schema-&-RLS.md)**: Table definitions, triggers, constraints, security checks, and admin RPC transactions.
 * **[$\color{#639922}{\text{Edge Functions}}$](./docs/Edge-Functions.md)**: Server-side geocoding and visitor IP logging via Deno Deploy.
-* **[$\color{#e35b30}{\text{Frontend Structure \& State}}$](./docs/Frontend-Structure-&-State.md)**: React 19 bootstrappers, Auth listeners, Location Gate lifecycles, and dashboard components.
+* **[$\color{#e35b30}{\text{Frontend Structure}}$ & $\color{#e35b30}{\text{State}}$](./docs/Frontend-Structure-&-State.md)**: React 19 bootstrappers, Auth listeners, Location Gate lifecycles, and dashboard components.
 * **[$\color{#b68a35}{\text{Interactive UI Components}}$](./docs/Interactive-UI-Components.md)**: Matrix calculations for gooey text morphs, card stacks, custom layouts, and form animations.
 * **[$\color{#0066cc}{\text{GitHub Wiki Hosting Guide}}$](./docs/GitHub-Wiki-Hosting-Guide.md)**: Publishing details for GitHub Wiki deployment.
 
@@ -55,11 +55,11 @@ Access to the resource dashboard is protected by a dual-stage verification seque
 * **$\color{#0066cc}{\text{Browser Geolocation Prompt}}$**: Standard browser-level GPS coordinates are requested. A granted prompt records coordinate-based visits and opens the gate. A denied prompt logs a rejection state and renders a blocking gate UI.
 * **$\color{#1f4d3d}{\text{Database RLS Verification}}$**: Row Level Security (RLS) on the database ensures that content reads from the `resources` table are only permitted if the requesting user has a valid, recent location grant in the `visits` ledger (configured via SQL trigger checking `has_recent_granted_location`).
 
-### 2. $\color{#b68a35}{\text{User Authentication \& Profile Synchronization}}$
+### 2. $\color{#b68a35}{\text{User Authentication}}$ & $\color{#b68a35}{\text{Profile Synchronization}}$
 * Integrated with **Google OAuth** via Supabase Auth.
 * Upon login or token refresh, user profiles are automatically synchronized with the database `users` table, generating clean, split first/last name columns from metadata.
 
-### 3. $\color{#1f4d3d}{\text{Separation of Concerns \& Admin Authorization}}$
+### 3. $\color{#1f4d3d}{\text{Separation of Concerns}}$ & $\color{#1f4d3d}{\text{Admin Authorization}}$
 * **Suggest/Review Pipeline**: Standard users can suggest resources through the `RequestForm`, which records drafts to the `requests` table instead of editing live resources.
 * **Atomic RPC Operations**: Administrator actions are processed through database remote procedure calls (`approve_request` and `reject_request`). The transition of a suggestion to the live `resources` index and the addition of contribution metrics happen transactionally on the server side to eliminate tampering.
 
