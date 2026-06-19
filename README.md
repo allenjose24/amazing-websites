@@ -1,6 +1,6 @@
-# Amazing Websites (The Vault) 🏛️
+# $\color{#e35b30}{\text{Amazing Websites (The Vault) 🏛️}}$
 
-A secure, premium visual repository for curating design resources, UI/UX animations, fonts, and developer tools. This project features high-fidelity visual aesthetics, reactive card layouts, robust authentication, and geolocation-based access control.
+A secure, premium visual repository for curating $\color{#e35b30}{\text{design resources}}$, $\color{#639922}{\text{animations}}$, $\color{#b68a35}{\text{fonts}}$, and $\color{#1f4d3d}{\text{developer tools}}$. This project features high-fidelity visual aesthetics, reactive card layouts, robust authentication, and geolocation-based access control.
 
 ---
 
