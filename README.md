@@ -8,13 +8,13 @@ A secure, premium visual repository for curating $\color{#e35b30}{\text{design r
 
 For in-depth explanations of the system design, database schemas, edge configurations, and visual animations, check out the **[Official GitHub Wiki](https://github.com/allenjose24/amazing-websites/wiki)** or explore the pages directly in the codebase:
 
-* **[$\color{#b68a35}{\text{Wiki Home}}$](./docs/Home.md)**: Repository overview, philosophy, design system, and code structure.
-* **[$\color{#e35b30}{\text{Architecture}}$ & $\color{#e35b30}{\text{Data Flows}}$](./docs/Architecture-&-Flows.md)**: System interactions, login sequences, location audits, and submission pipelines.
-* **[$\color{#1f4d3d}{\text{Database Schema}}$ & $\color{#1f4d3d}{\text{RLS}}$](./docs/Database-Schema-&-RLS.md)**: Table definitions, triggers, constraints, security checks, and admin RPC transactions.
-* **[$\color{#639922}{\text{Edge Functions}}$](./docs/Edge-Functions.md)**: Server-side geocoding and visitor IP logging via Deno Deploy.
-* **[$\color{#e35b30}{\text{Frontend Structure}}$ & $\color{#e35b30}{\text{State}}$](./docs/Frontend-Structure-&-State.md)**: React 19 bootstrappers, Auth listeners, Location Gate lifecycles, and dashboard components.
-* **[$\color{#b68a35}{\text{Interactive UI Components}}$](./docs/Interactive-UI-Components.md)**: Matrix calculations for gooey text morphs, card stacks, custom layouts, and form animations.
-* **[$\color{#0066cc}{\text{GitHub Wiki Hosting Guide}}$](./docs/GitHub-Wiki-Hosting-Guide.md)**: Publishing details for GitHub Wiki deployment.
+* **[<font color="#b68a35">Wiki Home</font>](./docs/Home.md)**: Repository overview, philosophy, design system, and code structure.
+* **[<font color="#e35b30">Architecture & Data Flows</font>](./docs/Architecture-&-Flows.md)**: System interactions, login sequences, location audits, and submission pipelines.
+* **[<font color="#1f4d3d">Database Schema & RLS</font>](./docs/Database-Schema-&-RLS.md)**: Table definitions, triggers, constraints, security checks, and admin RPC transactions.
+* **[<font color="#639922">Edge Functions</font>](./docs/Edge-Functions.md)**: Server-side geocoding and visitor IP logging via Deno Deploy.
+* **[<font color="#e35b30">Frontend Structure & State</font>](./docs/Frontend-Structure-&-State.md)**: React 19 bootstrappers, Auth listeners, Location Gate lifecycles, and dashboard components.
+* **[<font color="#b68a35">Interactive UI Components</font>](./docs/Interactive-UI-Components.md)**: Matrix calculations for gooey text morphs, card stacks, custom layouts, and form animations.
+* **[<font color="#0066cc">GitHub Wiki Hosting Guide</font>](./docs/GitHub-Wiki-Hosting-Guide.md)**: Publishing details for GitHub Wiki deployment.
 
 ---
 
