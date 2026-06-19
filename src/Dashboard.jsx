@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "./supabaseClient";
 import RequestForm from "./RequestForm";
 import ReviewPanel from "./ReviewPanel";
 import { CardStack, CategoryCards } from "./components/ui/card-stack";
-import { GitPullRequest, Plus, LayoutGrid, ShieldCheck, X, Menu, LogOut, RotateCw } from "lucide-react";
+import { GitPullRequest, LayoutGrid, ShieldCheck, X, Menu, LogOut, RotateCw } from "lucide-react";
 
 // UI/UX is sorted first — same helper used in card-stack
 const isArcCategory = (c = "") => /ui[\s\-/]*ux/i.test(c);
@@ -23,6 +23,7 @@ function useResponsiveCardConfig() {
         // Mobile
         const width = Math.round(Math.min(480, Math.max(220, vw * 0.52)));
         setConfig({
+          target: "mobile",
           width,
           height: Math.round(width * (290 / 480)),
           maxVisible: 3, // fewer visible cards on mobile to prevent overflow
@@ -33,6 +34,7 @@ function useResponsiveCardConfig() {
         // Desktop / Tablet
         const width = Math.round(Math.min(480, Math.max(220, vw * 0.42)));
         setConfig({
+          target: "desktop",
           width,
           height: Math.round(width * (290 / 480)),
           maxVisible: 7,
@@ -79,10 +81,22 @@ export default function Dashboard({ userEmail, userId }) {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMenuOpen(false);
   }, [scrolled]);
 
-  useEffect(() => { if (userId) fetchProfile(); }, [userId]);
+  const fetchProfile = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", userId)
+      .single();
+    if (error) console.error("Error fetching profile:", error);
+    else setProfile(data);
+  }, [userId]);
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { if (userId) fetchProfile(); }, [userId, fetchProfile]);
 
   useEffect(() => {
     function handleScroll() {
@@ -98,16 +112,6 @@ export default function Dashboard({ userEmail, userId }) {
     if (error) console.error("Error fetching resources:", error);
     else setResources(data || []);
     if (!silent) setLoading(false);
-  }
-
-  async function fetchProfile() {
-    const { data, error } = await supabase
-      .from("users")
-      .select("*")
-      .eq("id", userId)
-      .single();
-    if (error) console.error("Error fetching profile:", error);
-    else setProfile(data);
   }
 
   const isAdmin = profile?.is_admin === true;

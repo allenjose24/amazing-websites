@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence, useReducedMotion, useInView, useMotionValue, useScroll, useTransform, useSpring } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion, useScroll, useTransform, useSpring } from "framer-motion";
 import { SquareArrowOutUpRight, X, ArrowUpRight, ChevronRight } from "lucide-react";
 
 function cn(...classes) {
@@ -78,6 +78,7 @@ export function CardStack({
   const [activeDetail, setActiveDetail] = React.useState(null);
 
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setActive((a) => wrapIndex(a, len));
   }, [len]);
 
@@ -621,6 +622,7 @@ function TerminalCards({ items }) {
       timers.push(t);
     });
     return () => timers.forEach(clearTimeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -836,7 +838,7 @@ function CodeCards({ items }) {
     offset: ["start end", "end start"],
   });
 
-  const { height } = dimension;
+
 
   // Staggered parallax translation values for the columns
   const y1 = useTransform(scrollYProgress, [0, 1], [-80, 80]);

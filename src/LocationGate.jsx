@@ -22,6 +22,7 @@ export default function LocationGate({ session, children }) {
   useEffect(() => {
     logIpVisit(); // fire-and-forget, always runs
     requestBrowserLocation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function logIpVisit() {

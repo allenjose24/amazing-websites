@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { GooeyText } from "./components/ui/gooey-text-morphing";
 import { ArrowUpRight } from "lucide-react";
 
