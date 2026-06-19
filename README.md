@@ -65,6 +65,39 @@ Access to the resource dashboard is protected by a dual-stage verification seque
 
 ---
 
+## 🛡️ Repository Security & Quality Policies
+
+To enforce code compliance, automate vulnerability scanning, and coordinate code reviews, the repository implements the following policies:
+
+### 1. Continuous Integration (CI) Pipeline
+* **Configuration**: Located in [.github/workflows/ci.yml](file:///d:/antigravity/amazing-websites/.github/workflows/ci.yml).
+* **Environment**: Runs inside a clean Ubuntu runtime utilizing **Node.js v22** (matching Vite requirements).
+* **Checks Triggered**: Executed on push/PR events to `main` and `feat` branches.
+  * **Fresh Install Audit**: Invokes `npm ci` to verify package trees install cleanly.
+  * **Linter Quality Checks**: Runs `npm run lint` to enforce ESLint standards, code styling compliance, and hooks verification.
+  * **Production Compilation Verification**: Runs `npm run build` to confirm Vite bundles assets without syntax errors.
+
+### 2. Dependabot Dependency Auditing
+* **Configuration**: Located in [.github/dependabot.yml](file:///d:/antigravity/amazing-websites/.github/dependabot.yml).
+* **Monitoring Rules**:
+  * **npm Packages**: Checks `package.json` dependencies weekly for known security vulnerabilities and automatically creates PRs to patch them.
+  * **GitHub Actions**: Audits and auto-patches actions version tags in workflows.
+
+### 3. Automatic Code Review Assignment (CODEOWNERS)
+* **Configuration**: Located in [.github/CODEOWNERS](file:///d:/antigravity/amazing-websites/.github/CODEOWNERS).
+* **Policy**: Automatically assigns `@allenjose24` as a required reviewer on **all pull requests** and changes across the codebase.
+
+### 4. Community Templates
+* **Issue Templates**: Standardized bug report and feature request skeletons reside in [.github/ISSUE_TEMPLATE/](file:///d:/antigravity/amazing-websites/.github/ISSUE_TEMPLATE/) to guide contributors on reporting bugs or proposing features.
+* **Task Ideas Catalog**: Saved at [docs/Issue-Ideas-Template.md](file:///d:/antigravity/amazing-websites/docs/Issue-Ideas-Template.md) to serve as a copy-paste catalog for development sprints.
+
+### 5. Repository Protection (Recommended GitHub Configurations)
+To fully enforce this policy framework, configure the following inside your GitHub settings panel:
+* **Branch Protection**: Go to *Settings -> Branches -> Add protection rule* on `main`. Set **"Require a pull request before merging"** and **"Require status checks to pass before merging"** (selecting our `verify` job status check).
+* **Secret Scanning**: Enable *Secret scanning* and *Push protection* under *Settings -> Code security* to prevent API credentials from being committed to your repository history.
+
+---
+
 ## 🎨 UI & Interactive Components
 
 The frontend values premium aesthetics, fluid motion design, and high-quality user experiences:
