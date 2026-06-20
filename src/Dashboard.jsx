@@ -243,6 +243,33 @@ export default function Dashboard({ userEmail, userId }) {
               </button>
             </div>
           )}
+
+          {/* Search Bar inside static header: only visible when mode is 'index' and loaded */}
+          {mode === "index" && !loading && resources.length > 0 && (
+            <div className="mt-5 pt-5 border-t border-ink/10">
+              <div className="relative max-w-md w-full">
+                <input
+                  type="text"
+                  placeholder="Search resources by title, description, or category..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-white/40 border border-ink/12 rounded-xl px-4 py-2.5 pl-10 text-sm font-body outline-none focus:border-brass focus:ring-1 focus:ring-brass/25 transition-all placeholder:text-ink/35 text-ink"
+                />
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink/40 pointer-events-none">
+                  <Search size={15} />
+                </span>
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ink/40 hover:text-ink transition-colors p-1 flex items-center justify-center cursor-pointer"
+                    title="Clear search"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── Floating Capsule Controls (Fixed when scrolled) ── */}
@@ -291,33 +318,6 @@ export default function Dashboard({ userEmail, userId }) {
                 <LogOut size={15} />
                 Log Out
               </button>
-            </div>
-          )}
-
-          {/* Search Bar: only visible when mode is 'index' and loaded */}
-          {mode === "index" && !loading && resources.length > 0 && (
-            <div className="mt-5 pt-5 border-t border-ink/10">
-              <div className="relative w-full">
-                <input
-                  type="text"
-                  placeholder="Search resources by title, description, or category..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-white/50 border border-ink/15 rounded-xl px-4 py-2.5 pl-10 text-sm font-body outline-none focus:border-brass focus:ring-1 focus:ring-brass/20 transition-all placeholder:text-ink/35"
-                />
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink/40 pointer-events-none">
-                  <Search size={15} />
-                </span>
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery("")}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ink/40 hover:text-ink transition-colors p-1 flex items-center justify-center"
-                    title="Clear search"
-                  >
-                    <X size={14} />
-                  </button>
-                )}
-              </div>
             </div>
           )}
         </div>

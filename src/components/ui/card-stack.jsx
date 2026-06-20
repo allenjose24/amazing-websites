@@ -82,18 +82,20 @@ export function CardStack({
     setActive((a) => wrapIndex(a, len));
   }, [len]);
 
+  const safeActive = len > 0 ? wrapIndex(active, len) : 0;
+
   React.useEffect(() => {
     if (!len) return;
-    onChangeIndex?.(active, items[active]);
+    onChangeIndex?.(safeActive, items[safeActive]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active]);
+  }, [safeActive]);
 
   const maxOffset = Math.max(0, Math.floor(maxVisible / 2));
   const cardSpacing = Math.max(10, Math.round(cardWidth * (1 - overlap)));
   const stepDeg = maxOffset > 0 ? spreadDeg / maxOffset : 0;
 
-  const canGoPrev = loop || active > 0;
-  const canGoNext = loop || active < len - 1;
+  const canGoPrev = loop || safeActive > 0;
+  const canGoNext = loop || safeActive < len - 1;
 
   const prev = React.useCallback(() => {
     if (!len || !canGoPrev) return;
@@ -116,17 +118,17 @@ export function CardStack({
 
     const id = window.setInterval(
       () => {
-        if (loop || active < len - 1) next();
+        if (loop || safeActive < len - 1) next();
       },
       Math.max(700, intervalMs),
     );
 
     return () => window.clearInterval(id);
-  }, [autoAdvance, intervalMs, hovering, pauseOnHover, reduceMotion, len, loop, active, next]);
+  }, [autoAdvance, intervalMs, hovering, pauseOnHover, reduceMotion, len, loop, safeActive, next]);
 
   if (!len) return null;
 
-  const activeItem = items[active];
+  const activeItem = items[safeActive];
 
   return (
     <div
@@ -174,7 +176,7 @@ export function CardStack({
         >
           <AnimatePresence initial={false}>
             {items.map((item, i) => {
-              const off = signedOffset(i, active, len, loop);
+              const off = signedOffset(i, safeActive, len, loop);
               const abs = Math.abs(off);
               const visible = abs <= maxOffset;
               if (!visible) return null;
@@ -249,7 +251,7 @@ export function CardStack({
         <div className="mt-6 flex items-center justify-center gap-3">
           <div className="flex items-center gap-2">
             {items.map((it, idx) => {
-              const on = idx === active;
+              const on = idx === safeActive;
               return (
                 <button
                   key={it.id}
