@@ -3,7 +3,7 @@ import { supabase } from "./supabaseClient";
 import RequestForm from "./RequestForm";
 import ReviewPanel from "./ReviewPanel";
 import { CardStack, CategoryCards } from "./components/ui/card-stack";
-import { GitPullRequest, LayoutGrid, ShieldCheck, X, Menu, LogOut, RotateCw } from "lucide-react";
+import { GitPullRequest, LayoutGrid, ShieldCheck, X, Menu, LogOut, RotateCw, Search } from "lucide-react";
 
 // UI/UX is sorted first — same helper used in card-stack
 const isArcCategory = (c = "") => /ui[\s\-/]*ux/i.test(c);
@@ -59,6 +59,7 @@ export default function Dashboard({ userEmail, userId }) {
   const [scrolled, setScrolled]   = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [refreshing, setRefreshing]         = useState(false);
+  const [searchQuery, setSearchQuery]       = useState("");
   const cardConfig = useResponsiveCardConfig();
 
   useEffect(() => { fetchResources(); }, []);
@@ -119,9 +120,19 @@ export default function Dashboard({ userEmail, userId }) {
     ? `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || userEmail
     : userEmail;
 
+  const filteredResources = useMemo(() => {
+    if (!searchQuery.trim()) return resources;
+    const query = searchQuery.toLowerCase();
+    return resources.filter((res) => 
+      res.title?.toLowerCase().includes(query) ||
+      res.description?.toLowerCase().includes(query) ||
+      res.category?.toLowerCase().includes(query)
+    );
+  }, [resources, searchQuery]);
+
   const grouped = useMemo(() => {
     const map = new Map();
-    resources.forEach((res) => {
+    filteredResources.forEach((res) => {
       const key = res.category || "Uncategorized";
       if (!map.has(key)) map.set(key, []);
       map.get(key).push(res);
@@ -131,7 +142,7 @@ export default function Dashboard({ userEmail, userId }) {
       const bArc = isArcCategory(b) ? 0 : 1;
       return aArc - bArc;
     });
-  }, [resources]);
+  }, [filteredResources]);
 
   const goToIndex = () => { setMode("index"); setMenuOpen(false); fetchResources(); };
 
@@ -282,6 +293,33 @@ export default function Dashboard({ userEmail, userId }) {
               </button>
             </div>
           )}
+
+          {/* Search Bar: only visible when mode is 'index' and loaded */}
+          {mode === "index" && !loading && resources.length > 0 && (
+            <div className="mt-5 pt-5 border-t border-ink/10">
+              <div className="relative w-full">
+                <input
+                  type="text"
+                  placeholder="Search resources by title, description, or category..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-white/50 border border-ink/15 rounded-xl px-4 py-2.5 pl-10 text-sm font-body outline-none focus:border-brass focus:ring-1 focus:ring-brass/20 transition-all placeholder:text-ink/35"
+                />
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink/40 pointer-events-none">
+                  <Search size={15} />
+                </span>
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ink/40 hover:text-ink transition-colors p-1 flex items-center justify-center"
+                    title="Clear search"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── Content ── */}
@@ -295,6 +333,17 @@ export default function Dashboard({ userEmail, userId }) {
           <p className="font-mono text-sm text-ink/40">
             Nothing in the index yet. Suggest the first resource.
           </p>
+        ) : filteredResources.length === 0 ? (
+          <div className="text-center py-12 bg-white/40 border border-ink/10 rounded-2xl p-8 backdrop-blur-sm">
+            <p className="font-display text-lg text-ink/80 mb-2">No matching entries found</p>
+            <p className="font-body text-sm text-ink/50 mb-4">No resources match "{searchQuery}" in our index.</p>
+            <button
+              onClick={() => setSearchQuery("")}
+              className="inline-flex items-center gap-1.5 rounded-full bg-ink text-paper font-body text-xs font-medium px-4 py-2 hover:scale-[1.03] transition-transform"
+            >
+              Clear search
+            </button>
+          </div>
         ) : (
           <div className="flex flex-col gap-[var(--s-7)]">
             {grouped.map(([category, items], catIndex) => {
