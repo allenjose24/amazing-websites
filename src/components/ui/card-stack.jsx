@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useReducedMotion, useScroll, useTransform, useSpring } from "framer-motion";
-import { SquareArrowOutUpRight, X, ArrowUpRight, ChevronRight } from "lucide-react";
+import { SquareArrowOutUpRight, X, ArrowUpRight, ChevronRight, Copy, Check } from "lucide-react";
 
 function cn(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -338,11 +338,23 @@ const isRepoCategory   = (c = "") => /repo/i.test(c) || /git/i.test(c) || /code/
 
 // ── Shared detail drawer (modal) ──────────────────────────────────────────────
 function DetailDrawer({ res, onClose }) {
+  const [copied, setCopied] = useState(false);
+
   useEffect(() => {
     const esc = (e) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", esc);
     return () => document.removeEventListener("keydown", esc);
   }, [onClose]);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(res.url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch (err) {
+      console.error("Failed to copy URL:", err);
+    }
+  };
 
   return (
     <div
@@ -404,9 +416,23 @@ function DetailDrawer({ res, onClose }) {
             >
               Visit <ArrowUpRight size={14} />
             </a>
+            {res.url && (
+              <button
+                onClick={handleCopy}
+                className={cn(
+                  "inline-flex items-center gap-2 rounded-full border px-5 py-2.5 font-body text-sm font-medium transition-all cursor-pointer",
+                  copied
+                    ? "border-forest/30 bg-forest/5 text-forest"
+                    : "border-ink/15 text-ink/70 hover:border-ink/30 hover:bg-ink/5"
+                )}
+              >
+                {copied ? <Check size={14} className="animate-in fade-in zoom-in-50 duration-200" /> : <Copy size={14} />}
+                <span>{copied ? "Copied!" : "Copy Link"}</span>
+              </button>
+            )}
             <button
               onClick={onClose}
-              className="inline-flex items-center gap-2 rounded-full border border-ink/15 text-ink/60 px-5 py-2.5 font-body text-sm font-medium hover:border-ink/30 transition-colors"
+              className="inline-flex items-center gap-2 rounded-full border border-ink/15 text-ink/60 px-5 py-2.5 font-body text-sm font-medium hover:border-ink/30 transition-colors cursor-pointer"
             >
               Close
             </button>
@@ -414,7 +440,7 @@ function DetailDrawer({ res, onClose }) {
         </div>
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-ink/30 hover:text-ink/70 transition-colors z-35"
+          className="absolute top-4 right-4 text-ink/30 hover:text-ink/70 transition-colors z-35 cursor-pointer"
           aria-label="Close"
         >
           <X size={18} />
