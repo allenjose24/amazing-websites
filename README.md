@@ -128,7 +128,7 @@ The frontend values premium aesthetics, fluid motion design, and high-quality us
 ## 🚀 Getting Started
 
 ### 📋 Prerequisites
-* [Node.js](https://nodejs.org/) (v18+)
+* [Node.js](https://nodejs.org/) (v22+)
 * [Supabase CLI](https://supabase.com/docs/guides/cli)
 
 ### 💻 Local Development Setup
