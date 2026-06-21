@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { supabase } from './supabaseClient';
+import { isValidPreviewUrl } from './lib/utils';
 
 // ── Animated submission scene ─────────────────────────────────────────────────
 function SubmitScene({ phase }) {
@@ -179,7 +180,7 @@ function CloudIcon({ success }) {
 }
 
 // ── Field component ────────────────────────────────────────────────────────────
-function Field({ label, tag = 'input', hint, ...props }) {
+function Field({ label, tag = 'input', hint, error, ...props }) {
   const El = tag;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -192,7 +193,7 @@ function Field({ label, tag = 'input', hint, ...props }) {
         style={{
           width: '100%',
           background: 'rgba(255,255,255,0.85)',
-          border: '1px solid rgba(18,21,28,0.22)',
+          border: error ? '1px solid #8b2635' : '1px solid rgba(18,21,28,0.22)',
           borderRadius: 10,
           padding: tag === 'textarea' ? '10px 14px' : '0 14px',
           height: tag === 'textarea' ? 88 : 42,
@@ -206,17 +207,21 @@ function Field({ label, tag = 'input', hint, ...props }) {
           ...(props.style || {}),
         }}
         onFocus={(e) => {
-          e.target.style.borderColor = '#b68a35';
-          e.target.style.boxShadow = '0 0 0 3px rgba(182,138,53,0.12)';
+          e.target.style.borderColor = error ? '#8b2635' : '#b68a35';
+          e.target.style.boxShadow = error ? '0 0 0 3px rgba(139,38,53,0.12)' : '0 0 0 3px rgba(182,138,53,0.12)';
           props.onFocus?.(e);
         }}
         onBlur={(e) => {
-          e.target.style.borderColor = 'rgba(18,21,28,0.22)';
+          e.target.style.borderColor = error ? '#8b2635' : 'rgba(18,21,28,0.22)';
           e.target.style.boxShadow = 'none';
           props.onBlur?.(e);
         }}
       />
-      {hint && <p style={{ margin: 0, fontFamily: 'var(--font-mono, monospace)', fontSize: 10, color: 'rgba(18,21,28,0.55)', letterSpacing: '0.06em' }}>{hint}</p>}
+      {error ? (
+        <p style={{ margin: 0, fontFamily: 'var(--font-mono, monospace)', fontSize: 10, color: '#8b2635', letterSpacing: '0.06em' }}>{error}</p>
+      ) : hint ? (
+        <p style={{ margin: 0, fontFamily: 'var(--font-mono, monospace)', fontSize: 10, color: 'rgba(18,21,28,0.55)', letterSpacing: '0.06em' }}>{hint}</p>
+      ) : null}
     </div>
   );
 }
@@ -275,8 +280,11 @@ export default function RequestForm({ userId, userName, refreshTrigger }) {
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
+  const isPreviewValid = !form.preview_image.trim() || isValidPreviewUrl(form.preview_image);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!isPreviewValid) return;
     setPhase('sending');
 
     const category = form.category === '__custom__' ? form._customCategory : form.category;
@@ -422,6 +430,7 @@ export default function RequestForm({ userId, userName, refreshTrigger }) {
           value={form.preview_image}
           onChange={set('preview_image')}
           hint="Optional — used in card thumbnails"
+          error={!isPreviewValid ? "Invalid preview URL. Must point to a webp, webm, png, jpg, gif, svg, or mp4 resource." : null}
         />
 
         {/* description */}
@@ -456,7 +465,7 @@ export default function RequestForm({ userId, userName, refreshTrigger }) {
           </button>
           <button
             type="submit"
-            disabled={phase !== 'idle'}
+            disabled={phase !== 'idle' || !isPreviewValid}
             style={{
               background: '#12151c',
               border: 'none',
@@ -466,14 +475,14 @@ export default function RequestForm({ userId, userName, refreshTrigger }) {
               fontSize: 13,
               fontWeight: 500,
               color: '#f5f5f1',
-              cursor: phase !== 'idle' ? 'not-allowed' : 'pointer',
-              opacity: phase !== 'idle' ? 0.5 : 1,
+              cursor: (phase !== 'idle' || !isPreviewValid) ? 'not-allowed' : 'pointer',
+              opacity: (phase !== 'idle' || !isPreviewValid) ? 0.5 : 1,
               transition: 'transform 0.15s, opacity 0.18s',
               display: 'flex',
               alignItems: 'center',
               gap: 8,
             }}
-            onMouseEnter={(e) => { if (phase === 'idle') e.currentTarget.style.transform = 'scale(1.03)'; }}
+            onMouseEnter={(e) => { if (phase === 'idle' && isPreviewValid) e.currentTarget.style.transform = 'scale(1.03)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
