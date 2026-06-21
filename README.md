@@ -156,3 +156,23 @@ The frontend values premium aesthetics, fluid motion design, and high-quality us
    npx supabase login
    npx supabase functions deploy log-ip-visit
    ```
+
+---
+
+## 🤖 Developer Automation (GitHub App MCP Integration)
+
+This repository includes a custom token manager script ([mcp-github-app.cjs](./mcp-github-app.cjs)) to integrate with the GitHub MCP server as an enterprise-grade GitHub App. This ensures that any issues, branches, or Pull Requests created by AI agents are officially authored under a clean `[bot]` identity (rather than a personal account), allowing the repository owner to review, approve, and merge code changes.
+
+### 📋 Setup Overview
+1. **Register the GitHub App**: Create a private GitHub App on your account with read/write access to repository contents, issues, and PRs.
+2. **Download Private Key**: Generate and download the App's private `.pem` key file and place it in the project root (automatically excluded from git history via `.gitignore` for security).
+3. **Configure the Script**: Add your App ID and Installation ID inside `mcp-github-app.cjs`.
+4. **Link in MCP config**: Point your MCP configuration (e.g., `mcp_config.json`) to launch via the script:
+   ```json
+   "local-github-mcp": {
+     "command": "node",
+     "args": ["d:/antigravity/amazing-websites/mcp-github-app.cjs"]
+   }
+   ```
+
+For detailed instructions, see the complete guide at **[docs/GitHub-App-MCP-Setup.md](./docs/GitHub-App-MCP-Setup.md)**.

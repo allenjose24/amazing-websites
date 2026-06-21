@@ -39,6 +39,7 @@ build
 # Environment Files (CRITICAL: Keeps your keys/hashes secret)
 .env.local
 .env.*.local
+*.pem
 
 # IDEs
 .vscode
