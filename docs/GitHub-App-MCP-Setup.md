@@ -54,7 +54,7 @@ function signJwt(appId, privateKeyPem) {
   
   const payload = Buffer.from(JSON.stringify({
     iat: now - 60, // 60-second offset to handle clock drift
-    exp: now + 600, // JWT valid for 10 minutes
+    exp: now + 500, // JWT valid for 8 minutes, well within GitHub's 10-minute limit relative to iat
     iss: appId
   })).toString('base64url');
 
