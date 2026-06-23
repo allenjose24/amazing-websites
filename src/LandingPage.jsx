@@ -1,115 +1,90 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { GooeyText } from "./components/ui/gooey-text-morphing";
 import { ArrowUpRight } from "lucide-react";
-
-const VIDEO_URL =
-  "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260530_042513_df96a13b-6155-4f6e-8b93-c9dee66fba08.mp4";
-const SENSITIVITY = 0.8;
+import { animate, svg, stagger } from "animejs";
+import svgData from "./amazing-websites-svg.json";
+import { motion, useScroll, useTransform } from "framer-motion";
 
 export default function LandingPage({ onLogin }) {
-  const videoRef = useRef(null);
-  const prevXRef = useRef(null);
-  const targetTimeRef = useRef(0);
-  const seekingRef = useRef(false);
+  // Bind scroll position to path drawing length
+  const { scrollYProgress } = useScroll();
+  const pathLength = useTransform(scrollYProgress, [0, 0.95], [0, 1]);
 
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
+    // 1. Target the character path elements for the title
+    const paths = document.querySelectorAll(".word-path-active");
+    if (!paths.length) return;
+    
+    // Initially make them visible but with draw at 0%
+    paths.forEach(p => {
+      p.style.opacity = "1";
+    });
+    
+    // 2. Create Anime.js v4 drawables for each letter path
+    const drawables = Array.from(paths).map(path => svg.createDrawable(path));
 
-    const handleMouseMove = (e) => {
-      const video = videoRef.current;
-      if (!video || !video.duration) return;
-
-      const currentX = e.clientX;
-      if (prevXRef.current === null) {
-        prevXRef.current = currentX;
-        return;
-      }
-
-      const delta = currentX - prevXRef.current;
-      prevXRef.current = currentX;
-
-      const offset = (delta / window.innerWidth) * SENSITIVITY * video.duration;
-      targetTimeRef.current = Math.min(
-        video.duration,
-        Math.max(0, targetTimeRef.current + offset)
-      );
-
-      if (!seekingRef.current) {
-        seekingRef.current = true;
-        video.currentTime = targetTimeRef.current;
-      }
-    };
-
-    const handleSeeked = () => {
-      const video = videoRef.current;
-      if (!video) return;
-      if (Math.abs(video.currentTime - targetTimeRef.current) > 0.01) {
-        video.currentTime = targetTimeRef.current;
-      } else {
-        seekingRef.current = false;
-      }
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    video.addEventListener("seeked", handleSeeked);
-
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      video.removeEventListener("seeked", handleSeeked);
-    };
+    // 3. Animate a 20% active solid segment tracing the paths in an infinite loop
+    animate(drawables, {
+      draw: ["0 0.2", "0.8 1.0"],
+      easing: "inOutSine",
+      duration: 2500,
+      delay: stagger(120),
+      loop: true,
+    });
   }, []);
 
   return (
-    <>
-      {/* full-screen video background */}
-      <video
-        ref={videoRef}
-        src={VIDEO_URL}
-        muted
-        playsInline
-        preload="auto"
-        style={{
-          position: "fixed",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          objectPosition: "70% center",
-          zIndex: 0,
-          pointerEvents: "none",
-        }}
-      />
-
-      {/* subtle veil so text stays readable */}
-      <div
-        style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 1,
-          background:
-            "linear-gradient(120deg, rgba(245,245,241,0.55) 0%, rgba(245,245,241,0.20) 60%, rgba(245,245,241,0.05) 100%)",
-          pointerEvents: "none",
-        }}
-      />
-
-      {/* main layout: single screen, no overflow */}
-      <div
-        className="text-ink font-body"
-        style={{
-          position: "relative",
-          zIndex: 2,
-          overflow: "hidden",
-          height: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-        }}
+    <div
+      className="text-ink font-body w-full relative"
+      style={{
+        backgroundColor: "var(--color-paper, #f5f5f1)",
+        backgroundImage: `
+          radial-gradient(circle at 15% 15%, rgba(227, 91, 48, 0.05) 0%, transparent 40%),
+          radial-gradient(circle at 85% 85%, rgba(182, 138, 53, 0.06) 0%, transparent 45%),
+          linear-gradient(rgba(18, 21, 28, 0.015) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(18, 21, 28, 0.015) 1px, transparent 1px)
+        `,
+        backgroundSize: "100% 100%, 100% 100%, 28px 28px, 28px 28px",
+        minHeight: "300vh", // Spans the three full-screen sections
+      }}
+    >
+      {/* Winding Scroll SVG Line */}
+      <svg
+        viewBox="0 0 1000 3000"
+        fill="none"
+        className="absolute top-0 left-0 w-full h-full pointer-events-none z-10 overflow-visible"
+        preserveAspectRatio="none"
       >
-        <div
-          className="mx-auto w-full px-6 md:px-[var(--s-5)]"
-          style={{ maxWidth: 1200 }}
-        >
+        <defs>
+          {/* Vertical linear gradient to fade in the starting point of the path */}
+          <linearGradient 
+            id="line-gradient" 
+            x1="0" 
+            y1="540" 
+            x2="0" 
+            y2="3000" 
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop offset="0%" stopColor="var(--color-orange, #e35b30)" stopOpacity={0} />
+            <stop offset="6%" stopColor="var(--color-orange, #e35b30)" stopOpacity={1} />
+            <stop offset="100%" stopColor="var(--color-orange, #e35b30)" stopOpacity={1} />
+          </linearGradient>
+        </defs>
+        {/* Active solid drawing trail linked to scroll progress (no guide track) */}
+        <motion.path
+          d="M 300 540 C 450 540, 850 500, 850 750 C 850 1000, 200 800, 200 1150 C 200 1350, 50 1400, 150 1500 C 250 1600, 850 1500, 850 1800 C 850 2100, 750 2100, 500 2250 C 250 2400, 200 2600, 500 2600 C 800 2600, 800 2400, 500 2400 C 400 2400, 480 2480, 500 2500"
+          stroke="url(#line-gradient)"
+          strokeWidth="72"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ pathLength }}
+        />
+      </svg>
+
+      {/* Section 1: Hero */}
+      <section className="h-screen w-full flex flex-col justify-center relative z-20">
+        <div className="mx-auto w-full px-6 md:px-[var(--s-5)]" style={{ maxWidth: 1200 }}>
+          {/* Tag header */}
           <div className="flex items-center gap-[var(--s-2)] mb-[var(--s-4)]">
             <span
               style={{
@@ -135,11 +110,47 @@ export default function LandingPage({ onLogin }) {
             </p>
           </div>
 
+          {/* Animated SVG title with persistent outlines and looping active segment */}
+          <div className="mb-[var(--s-4)] w-full overflow-visible" style={{ maxWidth: "min(100%, 750px)" }}>
+            <svg 
+              viewBox={`0 0 ${svgData.width} ${svgData.height}`}
+              className="w-full h-auto text-ink overflow-visible"
+              style={{ display: 'block' }}
+            >
+              <g transform="translate(0, 150) scale(1, -1)">
+                {svgData.characters.map((char, index) => (
+                  <g key={index}>
+                    {/* Layer 1: Faint persistent character outline */}
+                    <path
+                      d={char.d}
+                      fill="none"
+                      stroke="rgba(18, 21, 28, 0.08)"
+                      strokeWidth="1.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    {/* Layer 2: Looping orange solid segment (no glow filter) */}
+                    <path
+                      d={char.d}
+                      className="word-path-active"
+                      fill="none"
+                      stroke="var(--color-orange, #e35b30)"
+                      strokeWidth="3.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{ opacity: 0 }}
+                    />
+                  </g>
+                ))}
+              </g>
+            </svg>
+          </div>
+
           <h1
             style={{
               fontFamily: "var(--font-display, serif)",
               fontWeight: 500,
-              fontSize: "clamp(28px, 5vw, 42px)",
+              fontSize: "clamp(24px, 4vw, 36px)",
               lineHeight: 1.1,
               color: "rgba(18,21,28,0.85)",
               margin: 0,
@@ -169,7 +180,7 @@ export default function LandingPage({ onLogin }) {
             style={{
               fontFamily: "var(--font-display, serif)",
               fontWeight: 500,
-              fontSize: "clamp(28px, 5vw, 42px)",
+              fontSize: "clamp(24px, 4vw, 36px)",
               lineHeight: 1.1,
               color: "rgba(18,21,28,0.85)",
               margin: "0 0 var(--s-4) 0",
@@ -178,32 +189,65 @@ export default function LandingPage({ onLogin }) {
             worth returning to.
           </h1>
 
-          <p
-            style={{
-              fontFamily: "var(--font-body, sans-serif)",
-              fontSize: "clamp(15px, 2vw, 18px)",
-              lineHeight: 1.6,
-              color: "rgba(18,21,28,0.65)",
-              maxWidth: 460,
-              margin: "0 0 var(--s-4) 0",
-            }}
-          >
-            Nothing here was clipped and forgotten. Every entry is checked,
-            tagged, and kept somewhere I can actually find it again.
+          <div className="absolute bottom-[var(--s-3)] left-6 md:left-[var(--s-5)] animate-bounce font-mono text-[11px] uppercase tracking-widest text-ink/40 flex items-center gap-2">
+            <span>↓ Scroll to explore</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Section 2: Philosophy Grid */}
+      <section className="h-screen w-full flex flex-col justify-center relative z-20">
+        <div className="mx-auto w-full px-6 md:px-[var(--s-5)]" style={{ maxWidth: 1200 }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-[var(--s-4)]">
+            
+            {/* Card 1 */}
+            <div className="bg-paper/80 backdrop-blur-md border border-ink/5 p-[var(--s-4)] rounded-2xl shadow-sm hover:border-orange/20 transition-all duration-300 md:mr-12">
+              <span className="font-mono text-xs uppercase tracking-widest text-orange mb-2 block">Curation</span>
+              <h2 className="font-display text-2xl font-semibold mb-3 text-ink/80">Strict Curation</h2>
+              <p className="font-body text-sm text-ink/60 leading-relaxed">
+                Every resource in this catalog has been selected, evaluated, and documented.
+                We believe in cataloging details that inspire builders, rather than clipping bulk links.
+              </p>
+            </div>
+
+            {/* Card 2 */}
+            <div className="bg-paper/80 backdrop-blur-md border border-ink/5 p-[var(--s-4)] rounded-2xl shadow-sm hover:border-orange/20 transition-all duration-300 md:ml-12 md:mt-24">
+              <span className="font-mono text-xs uppercase tracking-widest text-orange mb-2 block">Interactive</span>
+              <h2 className="font-display text-2xl font-semibold mb-3 text-ink/80">Active Sandbox</h2>
+              <p className="font-body text-sm text-ink/60 leading-relaxed">
+                Rather than screenshots, we track full code repositories, live APIs, and fluid HMR components. 
+                Everything is preserved exactly as it was built to run.
+              </p>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* Section 3: Portal Gate */}
+      <section className="h-screen w-full flex flex-col justify-center relative z-20">
+        <div className="mx-auto w-full px-6 md:px-[var(--s-5)] flex flex-col items-center justify-center text-center" style={{ maxWidth: 1200 }}>
+          
+          <h2 className="font-display text-3xl md:text-5xl font-medium mb-6 text-ink/80 animate-pulse">
+            Ready to explore?
+          </h2>
+          
+          <p className="font-body text-base text-ink/50 max-w-[500px] mb-8 leading-relaxed">
+            The archive is index-verified and ready. Step through the gate to access the private interface collection.
           </p>
 
           <button
             onClick={onLogin}
-            className="group inline-flex items-center gap-[var(--s-2)] rounded-full bg-ink text-paper px-[var(--s-4)] py-[var(--s-2)] font-body font-medium text-[15px] transition-transform hover:scale-[1.03]"
+            className="group relative inline-flex items-center gap-[var(--s-2)] rounded-full bg-ink text-paper px-[var(--s-5)] py-[var(--s-3)] font-body font-medium text-[16px] transition-transform hover:scale-[1.03] shadow-lg"
           >
             Enter the Vault
             <ArrowUpRight
-              size={16}
+              size={18}
               className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
             />
           </button>
         </div>
-      </div>
-    </>
+      </section>
+    </div>
   );
 }
